@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 
 export default function AnimatedHero() {
   return (
@@ -29,10 +29,10 @@ export default function AnimatedHero() {
         className="mt-10 flex items-center justify-center gap-x-6"
       >
         <Link
-          href="/sign-up"
+          href="/bikes"
           className="rounded-md bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          Get started
+          Browse Bikes
         </Link>
         <Link
           href="#how-it-works"
