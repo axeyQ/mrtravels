@@ -1,14 +1,27 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 
 export default function Navbar() {
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn, isLoaded } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  // We'll handle admin check separately to avoid the Convex query error
+  useEffect(() => {
+    // Only check admin status if the user is signed in
+    if (isLoaded && isSignedIn && user) {
+      // You can implement admin check here using localStorage or another method
+      // For now, we'll just set it to false to avoid the error
+      setIsAdmin(false);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [isLoaded, isSignedIn, user]);
   
   return (
     <motion.nav 
@@ -40,6 +53,15 @@ export default function Navbar() {
                   My Bookings
                 </Link>
               )}
+              
+              {isSignedIn && isAdmin && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary hover:text-gray-700"
+                >
+                  Admin Panel
+                </Link>
+              )}
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
@@ -62,6 +84,8 @@ export default function Navbar() {
               </div>
             )}
           </div>
+          
+          {/* Mobile menu button */}
           <div className="-mr-2 flex items-center sm:hidden">
             <button
               type="button"
@@ -112,6 +136,16 @@ export default function Navbar() {
                 My Bookings
               </Link>
             )}
+            
+            {isSignedIn && isAdmin && (
+              <Link
+                href="/admin"
+                className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary hover:bg-gray-50 hover:text-gray-700"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Admin Panel
+              </Link>
+            )}
           </div>
           <div className="border-t border-gray-200 pt-4 pb-3">
             {isSignedIn ? (
@@ -124,8 +158,12 @@ export default function Navbar() {
                   />
                 </div>
                 <div className="ml-3">
-                  <div className="text-base font-medium text-gray-800">{user?.fullName || 'User'}</div>
-                  <div className="text-sm font-medium text-gray-500">{user?.primaryEmailAddress?.emailAddress}</div>
+                  <div className="text-base font-medium text-gray-800">
+                    {user?.firstName} {user?.lastName}
+                  </div>
+                  <div className="text-sm font-medium text-gray-500">
+                    {user?.primaryPhoneNumber?.phoneNumber}
+                  </div>
                 </div>
                 <div className="ml-auto">
                   <UserButton afterSignOutUrl="/" />

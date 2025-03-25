@@ -11,12 +11,13 @@ export default defineSchema({
     isAvailable: v.boolean(),
     location: v.string(),
     features: v.array(v.string()),
-    rating: v.optional(v.number()),
   }),
   
   bookings: defineTable({
     bikeId: v.id("bikes"),
     userId: v.string(),
+    userName: v.string(),
+    userPhone: v.string(),
     startTime: v.number(),
     endTime: v.number(),
     status: v.string(), // "pending", "confirmed", "cancelled", "completed"
@@ -24,11 +25,12 @@ export default defineSchema({
   }).index("by_userId", ["userId"]).index("by_bikeId", ["bikeId"]),
   
   users: defineTable({
-    userId: v.string(),
-    firstName: v.string(),
-    lastName: v.string(),
-    phoneNumber: v.string(),
-    role: v.string(), // "user" or "admin"
-    imageUrl: v.optional(v.string()),
-  }).index("by_userId", ["userId"]).index("by_phoneNumber", ["phoneNumber"]),
+  userId: v.string(),
+  firstName: v.string(),
+  lastName: v.string(),
+  phoneNumber: v.string(),
+  imageUrl: v.optional(v.string()), // This was missing in your schema
+  role: v.string(),
+  createdAt: v.number(),
+}).index("by_userId", ["userId"]).index("by_phoneNumber", ["phoneNumber"]),
 });

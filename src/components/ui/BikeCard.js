@@ -34,7 +34,7 @@ export default function BikeCard({ bike }) {
         <div className="p-4">
           <div className="flex justify-between items-start">
             <h3 className="text-lg font-semibold text-gray-900">{bike.name}</h3>
-            <span className="text-primary font-bold">${bike.pricePerHour}/hr</span>
+            <span className="text-primary font-bold">₹{bike.pricePerHour}/hr</span>
           </div>
           <p className="text-sm text-gray-500 mt-1">{bike.type}</p>
           <p className="text-sm text-gray-600 mt-2 line-clamp-2">{bike.description}</p>

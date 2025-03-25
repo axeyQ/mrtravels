@@ -1,5 +1,24 @@
+// convex/bookings.js
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+
+// Get all bookings (admin only)
+export const getAllBookings = query({
+  args: { adminId: v.string() },
+  handler: async (ctx, args) => {
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can view all bookings");
+    }
+    
+    return await ctx.db.query("bookings").collect();
+  },
+});
 
 // Get bookings for a user
 export const getUserBookings = query({
@@ -62,6 +81,8 @@ export const createBooking = mutation({
   args: {
     bikeId: v.id("bikes"),
     userId: v.string(),
+    userName: v.string(),
+    userPhone: v.string(),
     startTime: v.number(),
     endTime: v.number(),
   },
@@ -80,6 +101,8 @@ export const createBooking = mutation({
     return await ctx.db.insert("bookings", {
       bikeId: args.bikeId,
       userId: args.userId,
+      userName: args.userName,
+      userPhone: args.userPhone,
       startTime: args.startTime,
       endTime: args.endTime,
       status: "pending",
@@ -88,16 +111,36 @@ export const createBooking = mutation({
   },
 });
 
-// Update booking status
+// Update booking status (admin only for most statuses)
 export const updateBookingStatus = mutation({
   args: {
     bookingId: v.id("bookings"),
     status: v.string(),
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+    
+    // Check permissions
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+    
+    // Users can only cancel their own bookings
+    // Admins can update any booking status
+    if (user.role !== "admin" && (args.status !== "cancelled" || booking.userId !== args.userId)) {
+      throw new Error("Unauthorized: You don't have permission to update this booking");
+    }
+    
+    // Update the booking status
     await ctx.db.patch(args.bookingId, {
       status: args.status,
     });
+    
     return args.bookingId;
   },
 });

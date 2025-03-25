@@ -9,7 +9,7 @@ export const getAllBikes = query({
   },
 });
 
-// Get bikes with filtering
+// Get filtered bikes (for user-facing pages)
 export const getFilteredBikes = query({
   args: { 
     type: v.optional(v.string()),
@@ -48,9 +48,10 @@ export const getBikeById = query({
   },
 });
 
-// Add a new bike (admin only)
+// Add a bike (admin only)
 export const addBike = mutation({
   args: {
+    adminId: v.string(),
     name: v.string(),
     type: v.string(),
     description: v.string(),
@@ -61,24 +62,28 @@ export const addBike = mutation({
     features: v.array(v.string()),
   },
   handler: async (ctx, args) => {
-    // Note: In a real app, we would add admin authorization here
-    return await ctx.db.insert("bikes", {
-      name: args.name,
-      type: args.type,
-      description: args.description,
-      pricePerHour: args.pricePerHour,
-      imageUrl: args.imageUrl,
-      isAvailable: args.isAvailable,
-      location: args.location,
-      features: args.features,
-    });
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can add bikes");
+    }
+    
+    const { adminId, ...bikeData } = args;
+    
+    // Insert the bike
+    return await ctx.db.insert("bikes", bikeData);
   },
 });
 
 // Update a bike (admin only)
 export const updateBike = mutation({
   args: {
-    id: v.id("bikes"),
+    adminId: v.string(),
+    bikeId: v.id("bikes"),
     name: v.optional(v.string()),
     type: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -89,19 +94,56 @@ export const updateBike = mutation({
     features: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
-    // Note: In a real app, we would add admin authorization here
-    await ctx.db.patch(id, fields);
-    return id;
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can update bikes");
+    }
+    
+    // Destructure to remove adminId and bikeId from update fields
+    const { adminId, bikeId, ...updates } = args;
+    
+    // Check if bike exists
+    const bike = await ctx.db.get(bikeId);
+    if (!bike) {
+      throw new Error("Bike not found");
+    }
+    
+    // Update the bike
+    await ctx.db.patch(bikeId, updates);
+    return bikeId;
   },
 });
 
 // Delete a bike (admin only)
 export const deleteBike = mutation({
-  args: { id: v.id("bikes") },
+  args: {
+    adminId: v.string(),
+    bikeId: v.id("bikes"),
+  },
   handler: async (ctx, args) => {
-    // Note: In a real app, we would add admin authorization here
-    await ctx.db.delete(args.id);
-    return args.id;
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can delete bikes");
+    }
+    
+    // Check if bike exists
+    const bike = await ctx.db.get(args.bikeId);
+    if (!bike) {
+      throw new Error("Bike not found");
+    }
+    
+    // Delete the bike
+    await ctx.db.delete(args.bikeId);
+    return args.bikeId;
   },
 });

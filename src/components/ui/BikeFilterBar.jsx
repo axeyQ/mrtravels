@@ -35,7 +35,7 @@ export default function BikeFilterBar({ onFilterChange }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              Bike Type
+              Vehicle Type
             </label>
             <select
               id="type"
@@ -44,16 +44,14 @@ export default function BikeFilterBar({ onFilterChange }) {
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
             >
               <option value="">All Types</option>
-              <option value="Mountain">Mountain</option>
-              <option value="Road">Road</option>
-              <option value="Hybrid">Hybrid</option>
-              <option value="Electric">Electric</option>
+              <option value="Bike">Bike</option>
+              <option value="Moped">Moped</option>
             </select>
           </div>
           
           <div>
             <label htmlFor="priceRange" className="block text-sm font-medium text-gray-700 mb-1">
-              Price Range ($/hr): ${priceRange[0]} - ${priceRange[1]}
+              Price Range (₹/hr): ₹{priceRange[0]} - ₹{priceRange[1]}
             </label>
             <div className="flex items-center space-x-2">
               <input

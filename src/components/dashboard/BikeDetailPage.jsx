@@ -30,7 +30,7 @@ export default function BikeDetailPage({ bikeId }) {
     }
     
     if (!bike.isAvailable) {
-      toast.error("This bike is not available for booking");
+      toast.error("This vehicle is not available for booking");
       return;
     }
     
@@ -50,7 +50,7 @@ export default function BikeDetailPage({ bikeId }) {
       });
       
       if (!isAvailable) {
-        toast.error("This bike is already booked for the selected time slot");
+        toast.error("This vehicle is already booked for the selected time slot");
         setIsBookingLoading(false);
         return;
       }
@@ -147,7 +147,7 @@ export default function BikeDetailPage({ bikeId }) {
                       onChange={(date) => setStartDate(date)}
                       showTimeSelect
                       dateFormat="MMMM d, yyyy h:mm aa"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                       minDate={new Date()}
                     />
                   </div>
@@ -158,7 +158,7 @@ export default function BikeDetailPage({ bikeId }) {
                       onChange={(date) => setEndDate(date)}
                       showTimeSelect
                       dateFormat="MMMM d, yyyy h:mm aa"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
                       minDate={startDate}
                     />
                   </div>
@@ -167,7 +167,7 @@ export default function BikeDetailPage({ bikeId }) {
                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price per hour:</span>
-                    <span className="font-medium">${bike.pricePerHour}</span>
+                    <span className="font-medium">₹{bike.pricePerHour}</span>
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-gray-600">Duration:</span>
@@ -175,7 +175,7 @@ export default function BikeDetailPage({ bikeId }) {
                   </div>
                   <div className="flex justify-between mt-1 text-lg font-semibold">
                     <span>Estimated total:</span>
-                    <span className="text-primary">${estimatedPrice}</span>
+                    <span className="text-primary">₹{estimatedPrice}</span>
                   </div>
                 </div>
                 
@@ -188,7 +188,7 @@ export default function BikeDetailPage({ bikeId }) {
                 </button>
               </div>
             ) : (
-              <p className="mt-2 text-red-600">This bike is currently not available for booking.</p>
+              <p className="mt-2 text-red-600">This vehicle is currently not available for booking.</p>
             )}
           </div>
         </motion.div>
