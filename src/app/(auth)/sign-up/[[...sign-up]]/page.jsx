@@ -32,12 +32,9 @@ export default function SignUpPage() {
           }}
           // Only use phone authentication
           initialValues={{
-            verifications: {
-              phoneCode: {}
-            },
-            firstName: '',
-            lastName: ''
-          }}
+    username: '',
+    password: '',
+  }}
         />
       </div>
     </div>

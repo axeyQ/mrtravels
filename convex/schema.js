@@ -11,6 +11,7 @@ export default defineSchema({
     isAvailable: v.boolean(),
     location: v.string(),
     features: v.array(v.string()),
+    registrationNumber: v.optional(v.string()),
   }),
   
   bookings: defineTable({

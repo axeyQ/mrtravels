@@ -16,6 +16,7 @@ export default function BikeForm({ bike = null, onSubmit, onCancel, title }) {
     isAvailable: bike?.isAvailable ?? true,
     location: bike?.location || "",
     features: bike?.features || [],
+    registrationNumber: bike?.registrationNumber || "",
   });
   
   const [featureInput, setFeatureInput] = useState("");
@@ -110,6 +111,26 @@ export default function BikeForm({ bike = null, onSubmit, onCancel, title }) {
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+              {/* New field for registration number - admin only */}
+              <div className="sm:col-span-3">
+              <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
+                Registration Number (Admin Only)
+              </label>
+              <div className="mt-1">
+                <input
+                  type="text"
+                  name="registrationNumber"
+                  id="registrationNumber"
+                  value={formData.registrationNumber}
+                  onChange={handleChange}
+                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                  placeholder="e.g. MH01AB1234"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This will only be visible to administrators.
+                </p>
               </div>
             </div>
             

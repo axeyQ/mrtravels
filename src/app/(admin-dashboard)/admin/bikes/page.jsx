@@ -1,5 +1,4 @@
 "use client";
-
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
@@ -8,24 +7,26 @@ import { toast } from "react-toastify";
 import { BiEdit, BiTrash, BiPlus } from "react-icons/bi";
 import Link from "next/link";
 import BikeForm from "@/components/admin/BikeForm";
+import ToggleSwitch from "@/components/ui/ToggleSwitch";
+import Image from "next/image";
 
 export default function AdminBikes() {
   const { user, isLoaded: isUserLoaded } = useUser();
   const bikes = useQuery(api.bikes.getAllBikes) || [];
   const isLoading = bikes === undefined;
-  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBike, setEditingBike] = useState(null);
   const [deletingBike, setDeletingBike] = useState(null);
-  
+  const [togglingBikes, setTogglingBikes] = useState({});
+
   const addBike = useMutation(api.bikes.addBike);
   const updateBike = useMutation(api.bikes.updateBike);
   const deleteBike = useMutation(api.bikes.deleteBike);
+  const toggleAvailability = useMutation(api.bikes.toggleBikeAvailability);
   
   // Handle adding a new bike
   const handleAddBike = async (bikeData) => {
     if (!isUserLoaded || !user) return;
-    
     try {
       await addBike({
         adminId: user.id,
@@ -42,7 +43,6 @@ export default function AdminBikes() {
   // Handle updating a bike
   const handleUpdateBike = async (bikeData) => {
     if (!isUserLoaded || !user || !editingBike) return;
-    
     try {
       await updateBike({
         adminId: user.id,
@@ -56,11 +56,10 @@ export default function AdminBikes() {
       toast.error(error.message || "Failed to update vehicle");
     }
   };
-  
+
   // Handle deleting a bike
   const handleDeleteBike = async () => {
     if (!isUserLoaded || !user || !deletingBike) return;
-    
     try {
       await deleteBike({
         adminId: user.id,
@@ -74,6 +73,29 @@ export default function AdminBikes() {
     }
   };
   
+  // Handle toggling bike availability
+  const handleToggleAvailability = async (bikeId, newAvailability) => {
+    if (!isUserLoaded || !user) return;
+    
+    // Set the bike as toggling to show a loading state
+    setTogglingBikes(prev => ({ ...prev, [bikeId]: true }));
+    
+    try {
+      await toggleAvailability({
+        adminId: user.id,
+        bikeId,
+        isAvailable: newAvailability,
+      });
+      toast.success(`Vehicle is now ${newAvailability ? 'available' : 'unavailable'}`);
+    } catch (error) {
+      console.error("Error toggling vehicle availability:", error);
+      toast.error(error.message || "Failed to update availability");
+    } finally {
+      // Remove the toggling state
+      setTogglingBikes(prev => ({ ...prev, [bikeId]: false }));
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="animate-pulse">
@@ -83,7 +105,8 @@ export default function AdminBikes() {
         </div>
         <div className="bg-white rounded-lg shadow">
           <div className="border-b border-gray-200 p-4">
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-6 gap-4">
+              <div className="bg-gray-200 h-6 rounded col-span-1"></div>
               <div className="bg-gray-200 h-6 rounded col-span-1"></div>
               <div className="bg-gray-200 h-6 rounded col-span-1"></div>
               <div className="bg-gray-200 h-6 rounded col-span-1"></div>
@@ -93,7 +116,8 @@ export default function AdminBikes() {
           </div>
           <div className="p-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="border-b last:border-0 border-gray-200 py-4 grid grid-cols-5 gap-4">
+              <div key={i} className="border-b last:border-0 border-gray-200 py-4 grid grid-cols-6 gap-4">
+                <div className="bg-gray-200 h-6 rounded col-span-1"></div>
                 <div className="bg-gray-200 h-6 rounded col-span-1"></div>
                 <div className="bg-gray-200 h-6 rounded col-span-1"></div>
                 <div className="bg-gray-200 h-6 rounded col-span-1"></div>
@@ -132,12 +156,15 @@ export default function AdminBikes() {
           </div>
         ) : (
           <>
-            <div className="border-b border-gray-200">
+            <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Registration
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
@@ -146,7 +173,7 @@ export default function AdminBikes() {
                       Price/Hour
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      Availability
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -158,27 +185,55 @@ export default function AdminBikes() {
                     <tr key={bike._id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0">
-                            <img className="h-10 w-10 rounded-full object-cover" src={bike.imageUrl || "/placeholder-bike.jpg"} alt="" />
+                          <div className="h-10 w-10 flex-shrink-0 relative">
+                            <Image 
+                              className="rounded-full object-cover"
+                              src={bike.imageUrl || "/placeholder-bike.jpg"} 
+                              alt={bike.name}
+                              width={40}
+                              height={40}
+                            />
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{bike.name}</div>
-                            <div className="text-sm text-gray-500">{bike.location}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {bike.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {bike.location}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{bike.type}</div>
+                        <div className="text-sm text-gray-900">
+                          {bike.registrationNumber || "—"}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">₹{bike.pricePerHour}</div>
+                        <div className="text-sm text-gray-900">
+                          {bike.type}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          bike.isAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}>
-                          {bike.isAvailable ? "Available" : "Unavailable"}
-                        </span>
+                        <div className="text-sm text-gray-900">
+                          ₹{bike.pricePerHour}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <ToggleSwitch 
+                            checked={bike.isAvailable}
+                            onChange={(newState) => handleToggleAvailability(bike._id, newState)}
+                            disabled={togglingBikes[bike._id]} 
+                          />
+                          <span className="ml-2 text-sm text-gray-500">
+                            {togglingBikes[bike._id] ? (
+                              <span className="text-blue-500 animate-pulse">Updating...</span>
+                            ) : (
+                              bike.isAvailable ? "Available" : "Unavailable"
+                            )}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
@@ -226,7 +281,9 @@ export default function AdminBikes() {
       {deletingBike && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Deletion</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Confirm Deletion
+            </h3>
             <p className="text-gray-500 mb-6">
               Are you sure you want to delete &quot;{deletingBike.name}&quot;? This action cannot be undone.
             </p>

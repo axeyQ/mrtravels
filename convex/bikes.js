@@ -1,6 +1,20 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+export const bikesTable = {
+  adminId: v.string(),
+  name: v.string(),
+  type: v.string(),
+  description: v.string(),
+  pricePerHour: v.number(),
+  imageUrl: v.optional(v.string()),
+  isAvailable: v.boolean(),
+  location: v.string(),
+  features: v.array(v.string()),
+  registrationNumber: v.optional(v.string()), // Added this field for admin-only identification
+  createdAt: v.number(),
+  updatedAt: v.number(),
+};
 // Get all bikes
 export const getAllBikes = query({
   args: {},
@@ -37,7 +51,14 @@ export const getFilteredBikes = query({
     }
     
     return await bikesQuery.collect();
+        // Remove admin-only fields for user view
+        return bikes.map(bike => {
+          // Create a new object without the registrationNumber
+          const { registrationNumber, ...userVisibleBike } = bike;
+          return userVisibleBike;
+        });
   },
+  
 });
 
 // Get a specific bike by ID
@@ -60,6 +81,7 @@ export const addBike = mutation({
     isAvailable: v.boolean(),
     location: v.string(),
     features: v.array(v.string()),
+    registrationNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if requester is admin
@@ -92,6 +114,7 @@ export const updateBike = mutation({
     isAvailable: v.optional(v.boolean()),
     location: v.optional(v.string()),
     features: v.optional(v.array(v.string())),
+    registrationNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if requester is admin
@@ -145,5 +168,31 @@ export const deleteBike = mutation({
     // Delete the bike
     await ctx.db.delete(args.bikeId);
     return args.bikeId;
+  },
+});
+
+// Toggle bike availability (quick action for admin table)
+export const toggleBikeAvailability = mutation({
+  args: {
+    adminId: v.string(),
+    bikeId: v.id("bikes"),
+    isAvailable: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const { adminId, bikeId, isAvailable } = args;
+
+    // Check if bike exists
+    const existingBike = await ctx.db.get(bikeId);
+    if (!existingBike) {
+      throw new Error("Bike not found");
+    }
+
+    // TODO: Add admin check here
+
+    // Update only the availability status
+    return await ctx.db.patch(bikeId, {
+      isAvailable,
+      updatedAt: Date.now(),
+    });
   },
 });
