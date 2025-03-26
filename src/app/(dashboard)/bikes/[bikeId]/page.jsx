@@ -1,4 +1,4 @@
-import BikeDetailPage from '../../../../components/dashboard/BikeDetailPage';
+import BikeDetailPage from '@/components/dashboard/BikeDetailPage';
 
 export const metadata = {
   title: 'Bike Details - Bike Booking App',

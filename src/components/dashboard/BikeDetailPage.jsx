@@ -22,7 +22,7 @@ export default function BikeDetailPage({ bikeId }) {
   
   const createBooking = useMutation(api.bookings.createBooking);
   
-  const handleBooking = async () => {
+  const handleBooking  = async () => {
     if (!user) {
       toast.error("Please sign in to book a bike");
       router.push('/sign-in');
