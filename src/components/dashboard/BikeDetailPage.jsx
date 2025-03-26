@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -9,6 +8,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import Image from 'next/image';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
@@ -21,8 +21,9 @@ export default function BikeDetailPage({ bikeId }) {
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   
   const createBooking = useMutation(api.bookings.createBooking);
-  
-  const handleBooking  = async () => {
+  const checkAvailability = useMutation(api.bookings.checkBikeAvailability);
+
+  const handleBooking = async () => {
     if (!user) {
       toast.error("Please sign in to book a bike");
       router.push('/sign-in');
@@ -43,7 +44,7 @@ export default function BikeDetailPage({ bikeId }) {
     
     try {
       // Check if bike is available in the selected time slot
-      const isAvailable = await useQuery(api.bookings.checkBikeAvailability, {
+      const isAvailable = await checkAvailability({
         bikeId,
         startTime: startDate.getTime(),
         endTime: endDate.getTime()
@@ -72,7 +73,7 @@ export default function BikeDetailPage({ bikeId }) {
       setIsBookingLoading(false);
     }
   };
-  
+
   if (isLoading) {
     return <BikeDetailSkeleton />;
   }
@@ -80,22 +81,23 @@ export default function BikeDetailPage({ bikeId }) {
   // Calculate estimated price
   const hours = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
   const estimatedPrice = hours * bike.pricePerHour;
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="rounded-lg overflow-hidden"
+          className="rounded-lg overflow-hidden relative h-80"
         >
-          <img
+          <Image
             src={bike.imageUrl || '/placeholder-bike.jpg'}
             alt={bike.name}
-            className="w-full h-80 object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
         </motion.div>
-        
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -115,12 +117,10 @@ export default function BikeDetailPage({ bikeId }) {
               </span>
             )}
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Description</h2>
             <p className="mt-2 text-gray-600">{bike.description}</p>
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Features</h2>
             <ul className="mt-2 grid grid-cols-2 gap-2">
@@ -134,7 +134,6 @@ export default function BikeDetailPage({ bikeId }) {
               ))}
             </ul>
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Booking</h2>
             {bike.isAvailable ? (
@@ -163,7 +162,6 @@ export default function BikeDetailPage({ bikeId }) {
                     />
                   </div>
                 </div>
-                
                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Price per hour:</span>
@@ -178,7 +176,6 @@ export default function BikeDetailPage({ bikeId }) {
                     <span className="text-primary">₹{estimatedPrice}</span>
                   </div>
                 </div>
-                
                 <button
                   onClick={handleBooking}
                   disabled={isBookingLoading || !bike.isAvailable}
@@ -202,21 +199,18 @@ function BikeDetailSkeleton() {
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="rounded-lg overflow-hidden bg-gray-200 animate-pulse h-80"></div>
-        
         <div>
           <div className="h-8 bg-gray-200 rounded animate-pulse mb-4 w-3/4"></div>
           <div className="flex space-x-2 mb-4">
             <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
             <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
           </div>
-          
           <div className="mb-4">
             <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
             <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
             <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
           </div>
-          
           <div className="mb-4">
             <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
             <div className="grid grid-cols-2 gap-2">
@@ -225,7 +219,6 @@ function BikeDetailSkeleton() {
               ))}
             </div>
           </div>
-          
           <div>
             <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-4"></div>
             <div className="h-10 bg-gray-200 rounded animate-pulse mb-2"></div>
