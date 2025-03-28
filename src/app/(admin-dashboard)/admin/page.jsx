@@ -185,7 +185,7 @@ export default function AdminDashboard() {
                         />
                       </div>
                       <div>
-                        <p className="font-medium">{bike.name}</p>
+                        <p className="font-medium">{bike.registrationNumber}</p>
                         <p className="text-sm text-gray-500">{bike.type}</p>
                       </div>
                     </div>

@@ -94,9 +94,25 @@ export const addBike = mutation({
       throw new Error("Unauthorized: Only admins can add bikes");
     }
     
-    const { adminId, ...bikeData } = args;
+    const now = Date.now();
     
-    // Insert the bike
+    // Make sure to include adminId and the timestamp fields
+    const bikeData = {
+      adminId: args.adminId,
+      name: args.name,
+      type: args.type,
+      description: args.description,
+      pricePerHour: args.pricePerHour,
+      imageUrl: args.imageUrl,
+      isAvailable: args.isAvailable,
+      location: args.location,
+      features: args.features,
+      registrationNumber: args.registrationNumber,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    // Insert the bike with all required fields
     return await ctx.db.insert("bikes", bikeData);
   },
 });
@@ -194,5 +210,54 @@ export const toggleBikeAvailability = mutation({
       isAvailable,
       updatedAt: Date.now(),
     });
+  },
+});
+// One-time migration function to fix bikes missing adminId
+export const fixBikesWithoutAdminId = mutation({
+  args: {
+    adminId: v.string(), // The admin who will be set as owner of all broken bikes
+  },
+  handler: async (ctx, args) => {
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can run migrations");
+    }
+    
+    // Get all bikes
+    const allBikes = await ctx.db.query("bikes").collect();
+    
+    // Filter bikes missing adminId or timestamp fields
+    const brokenBikes = allBikes.filter(bike => 
+      !bike.adminId || !bike.createdAt || !bike.updatedAt
+    );
+    
+    // Fix each broken bike
+    const now = Date.now();
+    const updates = [];
+    
+    for (const bike of brokenBikes) {
+      const updateData = {
+        ...(bike.adminId ? {} : { adminId: args.adminId }),
+        ...(bike.createdAt ? {} : { createdAt: now }),
+        ...(bike.updatedAt ? {} : { updatedAt: now })
+      };
+      
+      // Only update if there are fields to update
+      if (Object.keys(updateData).length > 0) {
+        await ctx.db.patch(bike._id, updateData);
+        updates.push(bike._id);
+      }
+    }
+    
+    return {
+      fixedCount: updates.length,
+      totalBikes: allBikes.length,
+      fixedIds: updates
+    };
   },
 });

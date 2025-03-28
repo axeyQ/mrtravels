@@ -1,55 +1,74 @@
 "use client";
-
-import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
-export default function BikeCard({ bike }) {
-  const [isHovered, setIsHovered] = useState(false);
-  
+export default function BikeCard({ bike, isBooked = false, isReallyAvailable = true }) {
   return (
     <motion.div
-      className="rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-shadow duration-300"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
+      className={`bg-white rounded-lg shadow-md overflow-hidden ${!isReallyAvailable ? 'opacity-75' : ''}`}
     >
-      <Link href={`/bikes/${bike._id}`}>
-        <div className="relative h-48 overflow-hidden">
-          <motion.img
-            src={bike.imageUrl || '/placeholder-bike.jpg'}
-            alt={bike.name}
-            className="w-full h-full object-cover"
-            animate={{ scale: isHovered ? 1.05 : 1 }}
-            transition={{ duration: 0.3 }}
-          />
-          {!bike.isAvailable && (
-            <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 m-2 rounded">
-              Not Available
-            </div>
-          )}
+      <div className="relative h-48">
+        <Image
+          src={bike.imageUrl || '/placeholder-bike.jpg'}
+          alt={bike.name}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+        />
+        {/* Price tag */}
+        <div className="absolute top-0 right-0 bg-primary text-white px-3 py-1 rounded-bl-lg">
+          ₹{bike.pricePerHour}/hr
         </div>
-        <div className="p-4">
-          <div className="flex justify-between items-start">
-            <h3 className="text-lg font-semibold text-gray-900">{bike.name}</h3>
-            <span className="text-primary font-bold">₹{bike.pricePerHour}/hr</span>
+        
+        {/* Booking status badge */}
+        {isBooked && (
+          <div className="absolute bottom-0 w-full bg-red-600 text-white text-center py-1 font-semibold">
+            BOOKED
           </div>
-          <p className="text-sm text-gray-500 mt-1">{bike.type}</p>
-          <p className="text-sm text-gray-600 mt-2 line-clamp-2">{bike.description}</p>
-          <div className="flex justify-between items-center mt-4">
-            <span className="text-sm text-gray-500">{bike.location}</span>
-            <motion.span
-              className="text-primary text-sm font-semibold"
-              animate={{ x: isHovered ? 5 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              View Details →
-            </motion.span>
+        )}
+        {!bike.isAvailable && (
+          <div className="absolute bottom-0 w-full bg-red-600 text-white text-center py-1 font-semibold">
+            UNAVAILABLE
           </div>
+        )}
+      </div>
+      
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{bike.name}</h3>
+        <div className="flex items-center mb-2">
+          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+            {bike.type}
+          </span>
+          <span className="ml-2 text-sm text-gray-500">{bike.location}</span>
         </div>
-      </Link>
+        <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+          {bike.description || 'No description available'}
+        </p>
+        
+        <div className="flex justify-between items-center">
+          <div className="text-sm">
+            {bike.features && bike.features.length > 0 ? (
+              <span className="text-gray-600">{bike.features.length} features</span>
+            ) : null}
+          </div>
+          
+          <Link 
+            href={`/bikes/${bike._id}`}
+            className={`px-3 py-1 rounded-md text-sm font-medium ${
+              isReallyAvailable 
+                ? 'bg-primary text-white hover:bg-primary-600' 
+                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+            }`}
+            onClick={(e) => !isReallyAvailable && e.preventDefault()}
+          >
+            {isReallyAvailable ? 'Book Now' : isBooked ? 'Booked' : 'Unavailable'}
+          </Link>
+        </div>
+      </div>
     </motion.div>
   );
 }

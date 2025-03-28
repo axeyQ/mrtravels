@@ -55,7 +55,7 @@ export default function AdminAnalytics() {
     const bikeBookings = filteredBookings.filter(booking => booking.bikeId === bike._id);
     return {
       bikeId: bike._id,
-      bikeName: bike.name,
+      bikeName: bike.registrationNumber,
       bikeType: bike.type,
       bookingsCount: bikeBookings.length,
       revenue: bikeBookings
