@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -10,7 +10,8 @@ import Link from 'next/link';
 import CloudinaryDocumentUpload from '@/components/ui/CloudinaryDocumentUpload';
 import Image from 'next/image';
 
-export default function UserProfilePage() {
+// Create a separate component that uses useSearchParams
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect');
@@ -358,5 +359,19 @@ export default function UserProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function UserProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="ml-4 text-gray-600">Loading profile...</p>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,6 @@
-// Update src/components/dashboard/PaymentSimulationPage.jsx
-
 "use client";
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, Suspense } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '@clerk/nextjs';
@@ -10,20 +9,8 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 
-// Debounce utility
-const debounce = (func, wait) => {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-};
-
-export default function PaymentSimulationPage() {
+// Component that uses useSearchParams
+function PaymentSimulationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
@@ -33,27 +20,29 @@ export default function PaymentSimulationPage() {
   const [processingStatus, setProcessingStatus] = useState('');
   const [showSimulation, setShowSimulation] = useState(false); // For development testing
   const [buttonCooldown, setButtonCooldown] = useState(false);
-  
+
   // Get booking details
-  const booking = useQuery(api.bookings.getBikeBookingById, 
+  const booking = useQuery(
+    api.bookings.getBikeBookingById,
     bookingId ? { bookingId } : "skip"
   );
-  
-  // Get bike details  
+
+  // Get bike details
   const bikeId = booking?.bikeId;
-  const bike = useQuery(api.bikes.getBikeById, 
+  const bike = useQuery(
+    api.bikes.getBikeById,
     bikeId ? { bikeId } : "skip"
   );
-  
+
   const isLoading = !booking || !bike;
-  
+
   // Check if we're in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       setShowSimulation(true);
     }
   }, []);
-  
+
   // Handle Paytm payment
   const handlePaytmPayment = async () => {
     if (!user || !booking || buttonCooldown || isProcessing) return;
@@ -87,7 +76,6 @@ export default function PaymentSimulationPage() {
       if (data.success && data.paymentUrl) {
         setProcessingStatus('Redirecting to Paytm...');
         console.log('Redirecting to Paytm payment page:', data.paymentUrl);
-        
         // Redirect to Paytm payment page
         window.location.href = data.paymentUrl;
       } else {
@@ -108,7 +96,7 @@ export default function PaymentSimulationPage() {
       setTimeout(() => setButtonCooldown(false), 3000);
     }
   };
-  
+
   // Simulation functions - only for development testing
   const handleSimulateSuccess = async () => {
     if (!bookingId || buttonCooldown || isProcessing) return;
@@ -137,7 +125,6 @@ export default function PaymentSimulationPage() {
       if (response.ok) {
         setProcessingStatus('Payment successful! Redirecting...');
         toast.success('Payment simulation successful!');
-        
         // Redirect to success page
         setTimeout(() => {
           router.push('/payment-result?status=success&bookingId=' + bookingId);
@@ -159,7 +146,7 @@ export default function PaymentSimulationPage() {
       setTimeout(() => setButtonCooldown(false), 5000);
     }
   };
-  
+
   const handleSimulateFailure = async () => {
     if (!bookingId || buttonCooldown || isProcessing) return;
     
@@ -187,7 +174,6 @@ export default function PaymentSimulationPage() {
       if (response.ok) {
         setProcessingStatus('Payment failed! Redirecting...');
         toast.error('Payment simulation failed!');
-        
         // Redirect to failure page
         setTimeout(() => {
           router.push('/payment-result?status=failed&bookingId=' + bookingId);
@@ -209,7 +195,7 @@ export default function PaymentSimulationPage() {
       setTimeout(() => setButtonCooldown(false), 5000);
     }
   };
-  
+
   const handleCancel = () => {
     // Navigate back to bike details page
     if (bike && bike._id) {
@@ -218,7 +204,7 @@ export default function PaymentSimulationPage() {
       router.push('/bikes');
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -229,7 +215,7 @@ export default function PaymentSimulationPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -247,7 +233,6 @@ export default function PaymentSimulationPage() {
                   Please pay the booking deposit of ₹42
                 </p>
               </div>
-              
               <div className="bg-gray-50 p-4 rounded-md mb-6">
                 <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
                   Booking Details
@@ -267,7 +252,6 @@ export default function PaymentSimulationPage() {
                   </div>
                 </div>
               </div>
-              
               <div className="bg-blue-50 p-4 rounded-md mb-6">
                 <h3 className="text-sm font-medium text-blue-800 mb-2">
                   Payment Breakdown
@@ -290,7 +274,6 @@ export default function PaymentSimulationPage() {
                   * ₹40 from deposit goes to bike owner, ₹2 is platform fee
                 </p>
               </div>
-              
               {/* Paytm Logo */}
               <div className="flex justify-center mb-6">
                 <div className="bg-blue-100 p-3 rounded-md flex items-center">
@@ -300,19 +283,17 @@ export default function PaymentSimulationPage() {
                   )}
                 </div>
               </div>
-              
               <div className="mt-8 space-y-4">
                 {/* Real Paytm Payment Button */}
                 <button
                   onClick={handlePaytmPayment}
                   disabled={buttonCooldown || isProcessing}
-                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                    buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+                    ${buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} 
+                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
                   {buttonCooldown && !isProcessing ? 'Please wait...' : 'Pay ₹42 with Paytm'}
                 </button>
-                
                 {/* Development Simulation Buttons - only shown in development */}
                 {showSimulation && (
                   <>
@@ -323,9 +304,8 @@ export default function PaymentSimulationPage() {
                       <button
                         onClick={handleSimulateSuccess}
                         disabled={buttonCooldown || isProcessing}
-                        className={`flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                          buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-                        }`}
+                        className={`flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+                          ${buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                       >
                         {buttonCooldown && !isProcessing ? 'Please wait...' : 'Simulate Success'}
                       </button>
@@ -333,8 +313,8 @@ export default function PaymentSimulationPage() {
                         onClick={handleSimulateFailure}
                         disabled={buttonCooldown || isProcessing}
                         className={`flex-1 py-2 px-4 border ${
-                          buttonCooldown || isProcessing 
-                            ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          buttonCooldown || isProcessing
+                            ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
                             : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                         } rounded-md shadow-sm text-sm font-medium`}
                       >
@@ -343,7 +323,6 @@ export default function PaymentSimulationPage() {
                     </div>
                   </>
                 )}
-                
                 <button
                   onClick={handleCancel}
                   disabled={isProcessing}
@@ -357,5 +336,21 @@ export default function PaymentSimulationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function PaymentSimulationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="h-16 w-16 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Loading payment interface...</p>
+        </div>
+      </div>
+    }>
+      <PaymentSimulationContent />
+    </Suspense>
   );
 }

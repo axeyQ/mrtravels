@@ -1,12 +1,11 @@
-// Create a new file: src/components/dashboard/PaymentResultPage.jsx
-
 "use client";
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-export default function PaymentResultPage() {
+// Component that uses useSearchParams
+function PaymentResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const status = searchParams.get('status') || 'success';
@@ -16,10 +15,9 @@ export default function PaymentResultPage() {
     const timer = setTimeout(() => {
       router.push('/bookings');
     }, 5000);
-    
     return () => clearTimeout(timer);
   }, [router]);
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full space-y-8 text-center">
@@ -69,7 +67,6 @@ export default function PaymentResultPage() {
             </div>
           </motion.div>
         )}
-        
         <div className="mt-6 flex flex-col space-y-4">
           <Link
             href="/bookings"
@@ -84,11 +81,26 @@ export default function PaymentResultPage() {
             Browse More Bikes
           </Link>
         </div>
-        
         <p className="mt-4 text-sm text-gray-500">
           You will be redirected to your bookings in a few seconds...
         </p>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function PaymentResultPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="h-16 w-16 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="mt-4 text-gray-600">Processing payment result...</p>
+        </div>
+      </div>
+    }>
+      <PaymentResultContent />
+    </Suspense>
   );
 }
