@@ -21,7 +21,7 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
           <div className="prose prose-sm max-w-none">
             <h3>1. Rental Agreement</h3>
             <p>
-              This Rental Agreement constitutes a contract between you (the "Renter") and BikeFlix (the "Company"), 
+              This Rental Agreement constitutes a contract between you (the &quot;Renter&quot;) and BikeFlix (the &quot;Company&quot;), 
               governing the rental of vehicles through our platform.
             </p>
             
@@ -31,7 +31,7 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
             </p>
             <ul>
               <li>Be at least 18 years of age</li>
-              <li>Possess a valid driver's license</li>
+              <li>Possess a valid driver&quot;s license</li>
               <li>Provide accurate personal information</li>
               <li>Have a valid payment method</li>
             </ul>
