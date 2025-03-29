@@ -19,7 +19,7 @@ export default function SignUpPage() {
           routing="path"
           path="/sign-up"
           signInUrl="/sign-in"
-          redirectUrl="/bikes"
+          redirectUrl="/profile"
           appearance={{
             elements: {
               formButtonPrimary: 
@@ -34,6 +34,8 @@ export default function SignUpPage() {
           initialValues={{
     username: '',
     password: '',
+    firstName:'',
+    lastName:''
   }}
         />
       </div>

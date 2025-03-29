@@ -1,15 +1,22 @@
 "use client";
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { UserButton } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 export default function Navbar() {
   const { user, isSignedIn, isLoaded } = useUser();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Only check profile completion if user is signed in
+  const isProfileComplete = useQuery(
+    api.users.isProfileComplete,
+    isLoaded && isSignedIn && user ? { userId: user.id } : "skip"
+  );
   
   // We'll handle admin check separately to avoid the Convex query error
   useEffect(() => {
@@ -24,7 +31,7 @@ export default function Navbar() {
   }, [isLoaded, isSignedIn, user]);
   
   return (
-    <motion.nav 
+    <motion.nav
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className="bg-white shadow-sm sticky top-0 z-50"
@@ -44,17 +51,26 @@ export default function Navbar() {
               >
                 Browse Bikes
               </Link>
-              
-              {isSignedIn && (
-                <Link
-                  href="/bookings"
-                  className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary hover:text-gray-700"
-                >
-                  My Bookings
-                </Link>
+              {isLoaded && isSignedIn && (
+                <>
+                  <Link
+                    href="/bookings"
+                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary hover:text-gray-700"
+                  >
+                    My Bookings
+                  </Link>
+                  <Link
+                    href="/profile"
+                    className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary hover:text-gray-700"
+                  >
+                    My Profile
+                    {isProfileComplete === false && (
+                      <span className="ml-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    )}
+                  </Link>
+                </>
               )}
-              
-              {isSignedIn && isAdmin && (
+              {isLoaded && isSignedIn && isAdmin && (
                 <Link
                   href="/admin"
                   className="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-primary hover:text-gray-700"
@@ -65,7 +81,7 @@ export default function Navbar() {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
-            {isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <UserButton afterSignOutUrl="/" />
             ) : (
               <div className="flex space-x-4">
@@ -84,7 +100,6 @@ export default function Navbar() {
               </div>
             )}
           </div>
-          
           {/* Mobile menu button */}
           <div className="-mr-2 flex items-center sm:hidden">
             <button
@@ -108,7 +123,6 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-
       {/* Mobile menu */}
       {isMobileMenuOpen && (
         <motion.div
@@ -126,18 +140,28 @@ export default function Navbar() {
             >
               Browse Bikes
             </Link>
-            
-            {isSignedIn && (
-              <Link
-                href="/bookings"
-                className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary hover:bg-gray-50 hover:text-gray-700"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                My Bookings
-              </Link>
+            {isLoaded && isSignedIn && (
+              <>
+                <Link
+                  href="/bookings"
+                  className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary hover:bg-gray-50 hover:text-gray-700"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  href="/profile"
+                  className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary hover:bg-gray-50 hover:text-gray-700"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Profile
+                  {isProfileComplete === false && (
+                    <span className="ml-1 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </Link>
+              </>
             )}
-            
-            {isSignedIn && isAdmin && (
+            {isLoaded && isSignedIn && isAdmin && (
               <Link
                 href="/admin"
                 className="block border-l-4 border-transparent py-2 pl-3 pr-4 text-base font-medium text-gray-500 hover:border-primary hover:bg-gray-50 hover:text-gray-700"
@@ -148,7 +172,7 @@ export default function Navbar() {
             )}
           </div>
           <div className="border-t border-gray-200 pt-4 pb-3">
-            {isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <div className="flex items-center px-4">
                 <div className="flex-shrink-0">
                   <img

@@ -1,106 +1,221 @@
-// Create a new file: src/components/dashboard/PaymentSimulationPage.jsx
+// Update src/components/dashboard/PaymentSimulationPage.jsx
 
 "use client";
-import { useState } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import { useUser } from '@clerk/nextjs';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
-import Image from 'next/image';
+
+// Debounce utility
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
 
 export default function PaymentSimulationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
+  const { user } = useUser();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
+  const [showSimulation, setShowSimulation] = useState(false); // For development testing
+  const [buttonCooldown, setButtonCooldown] = useState(false);
   
-  // Get booking details - with proper hook usage
+  // Get booking details
   const booking = useQuery(api.bookings.getBikeBookingById, 
     bookingId ? { bookingId } : "skip"
   );
   
-  // Get bike details - with proper hook usage  
+  // Get bike details  
   const bikeId = booking?.bikeId;
   const bike = useQuery(api.bikes.getBikeById, 
     bikeId ? { bikeId } : "skip"
   );
   
-  // Mutation for updating payment status
-  const updatePaymentStatus = useMutation(api.bookings.updatePaymentStatus);
-  
   const isLoading = !booking || !bike;
   
-  // Handle payment success
-  const handlePaymentSuccess = async () => {
-    if (!bookingId) return;
+  // Check if we're in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      setShowSimulation(true);
+    }
+  }, []);
+  
+  // Handle Paytm payment
+  const handlePaytmPayment = async () => {
+    if (!user || !booking || buttonCooldown || isProcessing) return;
     
+    // Prevent multiple clicks
+    setButtonCooldown(true);
     setIsProcessing(true);
-    setProcessingStatus('Processing payment...');
+    setProcessingStatus('Initiating payment...');
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Add a small delay to prevent rapid API calls
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Generate a random transaction ID
-      const transactionId = `SIMT_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-      
-      // Update booking payment status
-      await updatePaymentStatus({
-        bookingId,
-        success: true,
-        transactionId
+      // Call API to initiate Paytm payment
+      const response = await fetch('/api/initiate-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId,
+          userId: user.id,
+          userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+          userPhone: user.primaryPhoneNumber?.phoneNumber || '',
+          totalPrice: booking.totalPrice
+        }),
       });
       
-      setProcessingStatus('Payment successful! Redirecting...');
-      toast.success('Payment successful!');
+      const data = await response.json();
       
-      // Redirect to success page
-      setTimeout(() => {
-        router.push('/payment-result?status=success');
-      }, 2000);
-      
+      if (data.success && data.paymentUrl) {
+        setProcessingStatus('Redirecting to Paytm...');
+        console.log('Redirecting to Paytm payment page:', data.paymentUrl);
+        
+        // Redirect to Paytm payment page
+        window.location.href = data.paymentUrl;
+      } else {
+        if (data.error === 'Too many requests. Please wait a moment and try again.') {
+          toast.error('Too many payment attempts. Please wait a moment before trying again.');
+        } else {
+          toast.error(data.message || 'Failed to initiate payment');
+        }
+        setIsProcessing(false);
+        // Reset cooldown after error
+        setTimeout(() => setButtonCooldown(false), 3000);
+      }
     } catch (error) {
-      console.error('Payment update error:', error);
-      toast.error(`Payment processing failed: ${error.message || 'Unknown error'}`);
+      toast.error('Error initiating payment. Please try again in a moment.');
+      console.error('Payment initiation error:', error);
       setIsProcessing(false);
-      setProcessingStatus('');
+      // Reset cooldown after error
+      setTimeout(() => setButtonCooldown(false), 3000);
     }
   };
   
-  // Handle payment failure
-  const handlePaymentFailure = async () => {
-    if (!bookingId) return;
+  // Simulation functions - only for development testing
+  const handleSimulateSuccess = async () => {
+    if (!bookingId || buttonCooldown || isProcessing) return;
     
+    setButtonCooldown(true);
     setIsProcessing(true);
-    setProcessingStatus('Processing payment...');
+    setProcessingStatus('Simulating successful payment...');
     
     try {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Add a small delay
+      await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Update booking payment status
-      await updatePaymentStatus({
-        bookingId,
-        success: false
+      // Call your API to simulate a successful payment
+      const response = await fetch('/api/update-booking-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId,
+          success: true,
+          transactionId: `SIM_${Date.now()}`
+        }),
       });
       
-      setProcessingStatus('Payment failed! Redirecting...');
-      toast.error('Payment failed!');
-      
-      // Redirect to failure page
-      setTimeout(() => {
-        router.push('/payment-result?status=failed');
-      }, 2000);
-      
+      if (response.ok) {
+        setProcessingStatus('Payment successful! Redirecting...');
+        toast.success('Payment simulation successful!');
+        
+        // Redirect to success page
+        setTimeout(() => {
+          router.push('/payment-result?status=success&bookingId=' + bookingId);
+        }, 2000);
+      } else {
+        const data = await response.json();
+        if (data.error === 'Too many requests. Please wait a moment and try again.') {
+          toast.error('Too many payment attempts. Please wait a moment before trying again.');
+          setIsProcessing(false);
+          setTimeout(() => setButtonCooldown(false), 5000);
+        } else {
+          throw new Error(data.error || 'Failed to simulate payment');
+        }
+      }
     } catch (error) {
-      console.error('Payment update error:', error);
-      toast.error(`Payment processing failed: ${error.message || 'Unknown error'}`);
+      console.error('Payment simulation error:', error);
+      toast.error('Simulation failed: ' + error.message);
       setIsProcessing(false);
-      setProcessingStatus('');
+      setTimeout(() => setButtonCooldown(false), 5000);
+    }
+  };
+  
+  const handleSimulateFailure = async () => {
+    if (!bookingId || buttonCooldown || isProcessing) return;
+    
+    setButtonCooldown(true);
+    setIsProcessing(true);
+    setProcessingStatus('Simulating failed payment...');
+    
+    try {
+      // Add a small delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Call your API to simulate a failed payment
+      const response = await fetch('/api/update-booking-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId,
+          success: false,
+          transactionId: `SIM_FAIL_${Date.now()}`
+        }),
+      });
+      
+      if (response.ok) {
+        setProcessingStatus('Payment failed! Redirecting...');
+        toast.error('Payment simulation failed!');
+        
+        // Redirect to failure page
+        setTimeout(() => {
+          router.push('/payment-result?status=failed&bookingId=' + bookingId);
+        }, 2000);
+      } else {
+        const data = await response.json();
+        if (data.error === 'Too many requests. Please wait a moment and try again.') {
+          toast.error('Too many payment attempts. Please wait a moment before trying again.');
+          setIsProcessing(false);
+          setTimeout(() => setButtonCooldown(false), 5000);
+        } else {
+          throw new Error(data.error || 'Failed to simulate payment');
+        }
+      }
+    } catch (error) {
+      console.error('Payment simulation error:', error);
+      toast.error('Simulation failed: ' + error.message);
+      setIsProcessing(false);
+      setTimeout(() => setButtonCooldown(false), 5000);
+    }
+  };
+  
+  const handleCancel = () => {
+    // Navigate back to bike details page
+    if (bike && bike._id) {
+      router.push(`/bikes/${bike._id}`);
+    } else {
+      router.push('/bikes');
     }
   };
   
@@ -176,44 +291,66 @@ export default function PaymentSimulationPage() {
                 </p>
               </div>
               
-              {/* PhonePe Logo */}
+              {/* Paytm Logo */}
               <div className="flex justify-center mb-6">
-                <div className="bg-purple-100 p-3 rounded-md flex items-center">
-                  <span className="text-purple-800 font-bold mr-2">PhonePe</span>
-                  <span className="text-xs text-purple-600">(Simulation)</span>
+                <div className="bg-blue-100 p-3 rounded-md flex items-center">
+                  <span className="text-blue-800 font-bold mr-2">Paytm</span>
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="text-xs text-blue-600">(Test Environment)</span>
+                  )}
                 </div>
               </div>
               
               <div className="mt-8 space-y-4">
+                {/* Real Paytm Payment Button */}
                 <button
-                  onClick={handlePaymentSuccess}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  onClick={handlePaytmPayment}
+                  disabled={buttonCooldown || isProcessing}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
-                  Pay ₹42 with PhonePe
+                  {buttonCooldown && !isProcessing ? 'Please wait...' : 'Pay ₹42 with Paytm'}
                 </button>
-                <div className="text-center text-sm text-gray-500">
-                  <p>Simulation Options:</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handlePaymentSuccess}
-                    className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
-                  >
-                    Simulate Success
-                  </button>
-                  <button
-                    onClick={handlePaymentFailure}
-                    className="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    Simulate Failure
-                  </button>
-                </div>
-                <Link
-                  href={`/bikes/${bike._id}`}
-                  className="w-full flex justify-center py-2 px-4 text-sm font-medium text-gray-500 hover:text-gray-700"
+                
+                {/* Development Simulation Buttons - only shown in development */}
+                {showSimulation && (
+                  <>
+                    <div className="text-center text-sm text-gray-500 mt-4">
+                      <p>Development Testing Options:</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleSimulateSuccess}
+                        disabled={buttonCooldown || isProcessing}
+                        className={`flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                          buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                      >
+                        {buttonCooldown && !isProcessing ? 'Please wait...' : 'Simulate Success'}
+                      </button>
+                      <button
+                        onClick={handleSimulateFailure}
+                        disabled={buttonCooldown || isProcessing}
+                        className={`flex-1 py-2 px-4 border ${
+                          buttonCooldown || isProcessing 
+                            ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed' 
+                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        } rounded-md shadow-sm text-sm font-medium`}
+                      >
+                        {buttonCooldown && !isProcessing ? 'Please wait...' : 'Simulate Failure'}
+                      </button>
+                    </div>
+                  </>
+                )}
+                
+                <button
+                  onClick={handleCancel}
+                  disabled={isProcessing}
+                  className="w-full flex justify-center py-2 px-4 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:text-gray-300 disabled:cursor-not-allowed"
                 >
                   Cancel and Return
-                </Link>
+                </button>
               </div>
             </>
           )}

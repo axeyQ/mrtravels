@@ -9,21 +9,28 @@ import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import Image from 'next/image';
+import TermsAndConditionsModal from '@/components/ui/TermsAndConditionsModal';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
   const bike = useQuery(api.bikes.getBikeById, { bikeId });
   const isLoading = bike === undefined;
   
   // Get current time and calculate time limit (30 minutes from now)
   const currentTime = new Date();
   const timeLimit = new Date(currentTime.getTime() + 30 * 60 * 1000);
-  
   const [startDate, setStartDate] = useState(currentTime);
   const [endDate, setEndDate] = useState(new Date(currentTime.getTime() + 2 * 60 * 60 * 1000));
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  
+  // Check if user profile is complete
+  const isProfileComplete = useQuery(
+    api.users.isProfileComplete,
+    isUserLoaded && isSignedIn ? { userId: user.id } : null
+  );
   
   // Get availability information for the selected time period
   const availabilityInfo = useQuery(
@@ -49,10 +56,18 @@ export default function BikeDetailPage({ bikeId }) {
     return startDate >= currentTime && startDate <= timeLimit;
   };
   
-  const handleBooking = async () => {
-    if (!user) {
+  // Function to open terms modal
+  const handleOpenTermsModal = () => {
+    if (!isUserLoaded || !isSignedIn) {
       toast.error("Please sign in to book a bike");
       router.push('/sign-in');
+      return;
+    }
+    
+    // Check if profile is complete
+    if (isProfileComplete === false) {
+      toast.warning("Please complete your profile before booking");
+      router.push(`/profile?redirect=/bikes/${bikeId}`);
       return;
     }
     
@@ -66,26 +81,35 @@ export default function BikeDetailPage({ bikeId }) {
       return;
     }
     
+    // Check if the bike is available for the selected time period
+    if (availabilityInfo && !availabilityInfo.isAvailable) {
+      toast.error(availabilityInfo.reason || "This vehicle is already booked for the selected time period");
+      return;
+    }
+    
+    // If all validations pass, open the terms modal
+    setIsTermsModalOpen(true);
+  };
+  
+  // Proceed with booking after terms acceptance
+  const handleBooking = async () => {
     setIsBookingLoading(true);
     
     try {
-      // Check if the bike is available for the selected time period
-      if (availabilityInfo && !availabilityInfo.isAvailable) {
-        toast.error(availabilityInfo.reason || "This vehicle is already booked for the selected time period");
-        setIsBookingLoading(false);
-        return;
-      }
-      
       // Calculate hours and price
       const hours = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
       const totalPrice = hours * bike.pricePerHour;
       
+      // Get name from available sources
+      const fullName = user ? 
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() : 
+        'Unknown';
+      
       // IMPORTANT: These should ONLY be the fields that are defined in your schema
-      // Do NOT include createdAt or any other fields not in your schema
       const bookingData = {
         bikeId,
         userId: user.id,
-        userName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown',
+        userName: fullName,
         userPhone: user.primaryPhoneNumber?.phoneNumber || "Not provided",
         startTime: startDate.getTime(),
         endTime: endDate.getTime(),
@@ -93,15 +117,16 @@ export default function BikeDetailPage({ bikeId }) {
         status: "pending"
       };
       
+      console.log("Creating booking with data:", bookingData);
+      
       // Call the createBooking mutation
       await createBooking(bookingData);
-      
       toast.success("Booking created successfully!");
       router.push('/bookings');
-      
     } catch (error) {
       toast.error(`Booking failed: ${error.message || "Unknown error"}`);
       console.error("Booking error:", error);
+    } finally {
       setIsBookingLoading(false);
     }
   };
@@ -145,7 +170,6 @@ export default function BikeDetailPage({ bikeId }) {
             </div>
           )}
         </motion.div>
-        
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -155,17 +179,14 @@ export default function BikeDetailPage({ bikeId }) {
             <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-sm font-medium text-blue-700">
               {bike.type}
             </span>
-            <span className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium 
-              ${isReallyAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+            <span className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ${isReallyAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
               {isReallyAvailable ? "Available" : "Unavailable"}
             </span>
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Description</h2>
             <p className="mt-2 text-gray-600">{bike.description || "No description available"}</p>
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Features</h2>
             {bike.features && bike.features.length > 0 ? (
@@ -183,12 +204,27 @@ export default function BikeDetailPage({ bikeId }) {
               <p className="mt-2 text-gray-500">No features available</p>
             )}
           </div>
-          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Booking</h2>
             {bike.isAvailable ? (
               <div className="mt-2">
-                {/* New booking information box */}
+                {/* Profile Completion Warning */}
+                {isProfileComplete === false && (
+                  <div className="bg-yellow-50 p-4 rounded-md mb-4">
+                    <h3 className="font-medium text-yellow-800">Profile Incomplete</h3>
+                    <p className="text-yellow-700 mt-1">
+                      You need to complete your profile before booking. 
+                      <button 
+                        onClick={() => router.push(`/profile?redirect=/bikes/${bikeId}`)}
+                        className="ml-2 text-yellow-800 font-medium underline"
+                      >
+                        Complete Profile
+                      </button>
+                    </p>
+                  </div>
+                )}
+                
+                {/* Booking information box */}
                 <div className="bg-blue-50 p-4 rounded-md mb-4">
                   <h3 className="font-medium text-blue-800">Booking Information</h3>
                   <p className="text-blue-700 mt-1">
@@ -198,7 +234,6 @@ export default function BikeDetailPage({ bikeId }) {
                     <strong>Note:</strong> You can only book for start times within the next 30 minutes.
                   </p>
                 </div>
-                
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Start Time</label>
@@ -230,28 +265,27 @@ export default function BikeDetailPage({ bikeId }) {
                     />
                   </div>
                 </div>
-                
                 {/* Availability indicator */}
                 {isCheckingAvailability ? (
-  <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse">
-    <p className="text-blue-800">Checking availability...</p>
-  </div>
-) : !isReallyAvailable ? (
-  <div className="bg-red-50 p-3 rounded-md mb-4">
-    <p className="text-red-800 font-medium">
-      {!bike.isAvailable 
-        ? "This bike is not available for booking."
-        : availabilityInfo?.reason || "This bike is already booked for the selected time period"}
-    </p>
-  </div>
-) : (
-  <div className="bg-green-50 p-3 rounded-md mb-4">
-    <p className="text-green-800 font-medium">
-      This bike is available for booking during the selected time period!
-    </p>
-  </div>
-)}
-                
+                  <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse">
+                    <p className="text-blue-800">Checking availability...</p>
+                  </div>
+                ) : !isReallyAvailable ? (
+                  <div className="bg-red-50 p-3 rounded-md mb-4">
+                    <p className="text-red-800 font-medium">
+                      {!bike.isAvailable
+                        ? "This bike is not available for booking."
+                        : availabilityInfo?.reason || "This bike is already booked for the selected time period"
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 p-3 rounded-md mb-4">
+                    <p className="text-green-800 font-medium">
+                      This bike is available for booking during the selected time period!
+                    </p>
+                  </div>
+                )}
                 {/* Updated price breakdown with deposit highlight */}
                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                   <div className="flex justify-between">
@@ -278,20 +312,22 @@ export default function BikeDetailPage({ bikeId }) {
                     * ₹40 from deposit goes to bike owner, ₹2 is platform fee
                   </div>
                 </div>
-                
                 <button
-                  onClick={handleBooking}
-                  disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid()}
-                  className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                    ${isReallyAvailable && isStartTimeValid()
+                  onClick={handleOpenTermsModal}
+                  disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid() || isProfileComplete === false}
+                  className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
+                    ${isReallyAvailable && isStartTimeValid() && isProfileComplete !== false
                       ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
                       : 'bg-gray-400 cursor-not-allowed'}`}
                 >
-                  {isBookingLoading 
-                    ? "Processing..." 
+                  {isBookingLoading
+                    ? "Processing..."
                     : isReallyAvailable && isStartTimeValid()
-                      ? "Book & Pay ₹42 Deposit" 
-                      : "Unavailable"}
+                      ? isProfileComplete === false
+                        ? "Complete Profile to Book"
+                        : "Book & Pay ₹42 Deposit"
+                      : "Unavailable"
+                  }
                 </button>
               </div>
             ) : (
@@ -300,6 +336,16 @@ export default function BikeDetailPage({ bikeId }) {
           </div>
         </motion.div>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      <TermsAndConditionsModal 
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+        onAccept={() => {
+          setIsTermsModalOpen(false);
+          handleBooking();
+        }}
+      />
     </div>
   );
 }

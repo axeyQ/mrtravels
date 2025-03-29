@@ -2,15 +2,15 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const bikesTable = {
-  adminId: v.string(),
+  adminId: v.optional(v.string()),
   name: v.string(),
   type: v.string(),
   description: v.string(),
   pricePerHour: v.number(),
   imageUrl: v.optional(v.string()),
   isAvailable: v.boolean(),
-  location: v.string(),
-  features: v.array(v.string()),
+  location: v.optional(v.string()), // Changed to optional
+  features: v.optional(v.array(v.string())), // Changed to optional
   registrationNumber: v.optional(v.string()), // Added this field for admin-only identification
   createdAt: v.number(),
   updatedAt: v.number(),
@@ -79,8 +79,6 @@ export const addBike = mutation({
     pricePerHour: v.number(),
     imageUrl: v.string(),
     isAvailable: v.boolean(),
-    location: v.string(),
-    features: v.array(v.string()),
     registrationNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -105,8 +103,6 @@ export const addBike = mutation({
       pricePerHour: args.pricePerHour,
       imageUrl: args.imageUrl,
       isAvailable: args.isAvailable,
-      location: args.location,
-      features: args.features,
       registrationNumber: args.registrationNumber,
       createdAt: now,
       updatedAt: now
@@ -128,8 +124,6 @@ export const updateBike = mutation({
     pricePerHour: v.optional(v.number()),
     imageUrl: v.optional(v.string()),
     isAvailable: v.optional(v.boolean()),
-    location: v.optional(v.string()),
-    features: v.optional(v.array(v.string())),
     registrationNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

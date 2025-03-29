@@ -200,12 +200,20 @@ export const createBooking = mutation({
     if (!bike.isAvailable) {
       throw new Error("Bike is not available for booking");
     }
-    
+
+    const user = await ctx.db
+    .query("users")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .unique();
+     // Use the name from the user profile if available, otherwise use the provided name
+     const bookingUserName = user ? 
+     `${user.firstName || ''} ${user.lastName || ''}`.trim() : 
+     userName;  
     // Simple booking creation without any fancy checks
     const bookingId = await ctx.db.insert("bookings", {
       bikeId,
       userId,
-      userName,
+      userName: bookingUserName,
       userPhone,
       startTime,
       endTime,
@@ -395,6 +403,15 @@ export const debugBikeAvailability = query({
       const booking = await ctx.db.get(bookingId);
       if (!booking) {
         throw new Error("Booking not found");
+      }
+      
+      // Check if payment status is already updated to prevent redundant updates
+      if (success && booking.paymentStatus === "deposit_paid") {
+        return { success: true, bookingId, alreadyProcessed: true };
+      }
+      
+      if (!success && booking.paymentStatus === "payment_failed") {
+        return { success: false, bookingId, alreadyProcessed: true };
       }
       
       const now = Date.now();

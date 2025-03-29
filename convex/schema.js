@@ -4,7 +4,7 @@ import { v } from "convex/values";
 
 export default defineSchema({
   bikes: defineTable({
-    adminId: v.string(),
+    adminId: v.optional(v.string()),
     name: v.string(),
     type: v.string(),
     description: v.string(),
@@ -41,7 +41,13 @@ export default defineSchema({
     firstName: v.string(),
     lastName: v.string(),
     phoneNumber: v.optional(v.string()),
-    imageUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()), // Clerk profile image
+    profilePictureUrl: v.optional(v.string()), // Custom profile picture
+    licenseNumber: v.optional(v.string()),
+    licenseImageUrl: v.optional(v.string()),
+    aadharImageUrl: v.optional(v.string()), // Front side
+    aadharBackImageUrl: v.optional(v.string()), // Back side - new field
+    profileComplete: v.optional(v.boolean()),
     role: v.string(), // "user", "admin"
     createdAt: v.number(),
   }).index("by_userId", ["userId"]).index("by_phoneNumber", ["phoneNumber"]),

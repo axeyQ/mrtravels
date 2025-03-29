@@ -12,32 +12,51 @@ export const storeUser = mutation({
     imageUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Check if user already exists
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .unique();
+    console.log("storeUser called with:", args);
     
-    if (existingUser) {
-      // Update the user
-      await ctx.db.patch(existingUser._id, {
-        firstName: args.firstName,
-        lastName: args.lastName,
-        phoneNumber: args.phoneNumber,
-        imageUrl: args.imageUrl,
-      });
-      return existingUser._id;
-    } else {
-      // Create a new user
-      return await ctx.db.insert("users", {
-        userId: args.userId,
-        firstName: args.firstName,
-        lastName: args.lastName,
-        phoneNumber: args.phoneNumber,
-        imageUrl: args.imageUrl,
-        role: "user", // Default role is user
-        createdAt: Date.now(),
-      });
+    try {
+      // Check if user already exists
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .unique();
+      
+      if (existingUser) {
+        console.log("Existing user found:", existingUser);
+        
+        // If the profile is already complete, don't override firstName and lastName
+        const fieldsToUpdate = {
+          phoneNumber: args.phoneNumber,
+          imageUrl: args.imageUrl || existingUser.imageUrl || "",
+        };
+        
+        // Only update firstName and lastName if they're not already set or profile is not complete
+        if (!existingUser.profileComplete) {
+          fieldsToUpdate.firstName = args.firstName;
+          fieldsToUpdate.lastName = args.lastName;
+        }
+        
+        console.log("Updating user with fields:", fieldsToUpdate);
+        await ctx.db.patch(existingUser._id, fieldsToUpdate);
+        return existingUser._id;
+      } else {
+        console.log("Creating new user");
+        // Create a new user
+        return await ctx.db.insert("users", {
+          userId: args.userId,
+          firstName: args.firstName,
+          lastName: args.lastName,
+          phoneNumber: args.phoneNumber,
+          imageUrl: args.imageUrl || "",
+          licenseNumber: "", // Initialize as empty
+          profileComplete: false, // Initialize as incomplete
+          role: "user", // Default role is user
+          createdAt: Date.now(),
+        });
+      }
+    } catch (error) {
+      console.error("Error in storeUser:", error);
+      throw error;
     }
   },
 });
@@ -53,17 +72,94 @@ export const getUser = query({
   },
 });
 
-// This function was missing or not properly deployed
+// Update user profile
+export const updateUserProfile = mutation({
+  args: {
+    userId: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
+    licenseNumber: v.string(),
+    licenseImageUrl: v.string(), // Changed from optional to required
+    aadharImageUrl: v.string(),  // Changed from optional to required
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Make sure all fields have valid values
+    if (!args.firstName || !args.lastName || !args.licenseNumber) {
+      throw new Error("First name, last name, and license number are required");
+    }
+    
+    // Check that we have both required document images
+    if (!args.licenseImageUrl || !args.aadharImageUrl) {
+      throw new Error("Both license and Aadhar card images are required");
+    }
+    
+    console.log("Updating user profile with complete data:", {
+      userId: args.userId,
+      firstName: args.firstName,
+      lastName: args.lastName,
+      licenseNumber: args.licenseNumber,
+      hasLicenseImage: !!args.licenseImageUrl,
+      hasAadharImage: !!args.aadharImageUrl
+    });
+    
+    // Update user profile with all required fields
+    await ctx.db.patch(user._id, {
+      firstName: args.firstName,
+      lastName: args.lastName,
+      licenseNumber: args.licenseNumber,
+      licenseImageUrl: args.licenseImageUrl,
+      aadharImageUrl: args.aadharImageUrl,
+      profileComplete: true, // Mark as complete since all fields are now required
+    });
+    
+    return user._id;
+  },
+});
+
+// Check if user profile is complete
+export const isProfileComplete = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+    
+    if (!user) {
+      return false;
+    }
+    
+    // Check for all required fields including the new ones
+    return Boolean(
+      user.profileComplete === true && 
+      user.firstName && 
+      user.lastName && 
+      user.licenseNumber && 
+      user.licenseImageUrl && 
+      user.aadharImageUrl &&
+      user.aadharBackImageUrl && // Check for Aadhar back image
+      user.profilePictureUrl      // Check for profile picture
+    );
+  },
+});
+
 // List all users - Admin only function
 export const listUsers = query({
   args: { adminId: v.string() },
   handler: async (ctx, args) => {
     // In a production system, you would verify the admin status here
     // For now, we'll just return all users to make the function work
-    
     // Get all users from the database
     const users = await ctx.db.query("users").collect();
-    
     return users;
   },
 });
@@ -157,6 +253,61 @@ export const setFirstAdmin = mutation({
     await ctx.db.patch(user._id, {
       role: "admin",
     });
+    
+    return user._id;
+  },
+});
+
+// Direct update function to bypass validator
+export const directUpdateUser = mutation({
+  args: {
+    userId: v.string(),
+    updateData: v.object({
+      firstName: v.optional(v.string()),
+      lastName: v.optional(v.string()),
+      licenseNumber: v.optional(v.string()),
+      licenseImageUrl: v.optional(v.string()),
+      aadharImageUrl: v.optional(v.string()),
+      aadharBackImageUrl: v.optional(v.string()), 
+      profilePictureUrl: v.optional(v.string()),
+      // Don't include profileComplete in args - we'll compute it
+    })
+  },
+  handler: async (ctx, args) => {
+    const { userId, updateData } = args;
+    
+    console.log("Direct user update called with:", { userId, ...updateData });
+    
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Create a clean updateData object without any unnecessary fields
+    const cleanUpdateData = { ...updateData };
+    
+    // Determine if profile is complete based on required fields
+    const isComplete = Boolean(
+      cleanUpdateData.firstName && 
+      cleanUpdateData.lastName && 
+      cleanUpdateData.licenseNumber && 
+      cleanUpdateData.licenseImageUrl && 
+      cleanUpdateData.aadharImageUrl &&
+      cleanUpdateData.aadharBackImageUrl &&
+      cleanUpdateData.profilePictureUrl
+    );
+    
+    // Add profileComplete as a separate field with a boolean value
+    cleanUpdateData.profileComplete = isComplete;
+    
+    console.log("Updating user with cleaned data:", cleanUpdateData);
+    
+    // Apply the updates
+    await ctx.db.patch(user._id, cleanUpdateData);
     
     return user._id;
   },

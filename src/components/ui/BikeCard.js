@@ -23,7 +23,6 @@ export default function BikeCard({ bike, isBooked = false, isReallyAvailable = t
         <div className="absolute top-0 right-0 bg-primary text-white px-3 py-1 rounded-bl-lg">
           ₹{bike.pricePerHour}/hr
         </div>
-        
         {/* Booking status badge */}
         {isBooked && (
           <div className="absolute bottom-0 w-full bg-red-600 text-white text-center py-1 font-semibold">
@@ -36,31 +35,22 @@ export default function BikeCard({ bike, isBooked = false, isReallyAvailable = t
           </div>
         )}
       </div>
-      
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-900 mb-1">{bike.name}</h3>
         <div className="flex items-center mb-2">
           <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
             {bike.type}
           </span>
-          <span className="ml-2 text-sm text-gray-500">{bike.location}</span>
         </div>
         <p className="text-gray-600 text-sm line-clamp-2 mb-3">
           {bike.description || 'No description available'}
         </p>
-        
-        <div className="flex justify-between items-center">
-          <div className="text-sm">
-            {bike.features && bike.features.length > 0 ? (
-              <span className="text-gray-600">{bike.features.length} features</span>
-            ) : null}
-          </div>
-          
-          <Link 
+        <div className="flex justify-end">
+          <Link
             href={`/bikes/${bike._id}`}
             className={`px-3 py-1 rounded-md text-sm font-medium ${
-              isReallyAvailable 
-                ? 'bg-primary text-white hover:bg-primary-600' 
+              isReallyAvailable
+                ? 'bg-primary text-white hover:bg-primary-600'
                 : 'bg-gray-300 text-gray-600 cursor-not-allowed'
             }`}
             onClick={(e) => !isReallyAvailable && e.preventDefault()}
