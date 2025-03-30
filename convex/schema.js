@@ -34,6 +34,12 @@ export default defineSchema({
     remainingAmount: v.optional(v.number()),
     paymentTransactionId: v.optional(v.string()),
     depositPaidAt: v.optional(v.number()),
+
+    // New fields for custom bookings
+    notes: v.optional(v.string()), // For custom booking notes
+    isAdminBooking: v.optional(v.boolean()), // Flag to identify admin-created bookings
+    createdAt: v.optional(v.number()), // Timestamp when booking was created    
+    
   }).index("by_userId", ["userId"]).index("by_bikeId", ["bikeId"]),
   
   users: defineTable({

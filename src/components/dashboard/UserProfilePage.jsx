@@ -19,6 +19,9 @@ function ProfileContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionErrors, setSubmissionErrors] = useState([]);
   const [formInitialized, setFormInitialized] = useState(false);
+  const [licenseNumberChanged, setLicenseNumberChanged] = useState(false);
+  const [isCheckingLicense, setIsCheckingLicense] = useState(false);
+  const [licenseError, setLicenseError] = useState("");
 
   // Get current user data from database
   const userData = useQuery(
@@ -44,31 +47,69 @@ function ProfileContent() {
     profilePictureUrl: null, // New field for profile picture
   });
 
+  // Query to check if license number already exists
+  const licenseExists = useQuery(
+    api.users.checkLicenseExists,
+    (licenseNumberChanged && formData.licenseNumber) ? 
+      { 
+        licenseNumber: formData.licenseNumber,
+        currentUserId: user?.id || ""
+      } : "skip"
+  );
+
+  // Check for duplicate license after query returns
+  useEffect(() => {
+    if (licenseExists !== undefined) {
+      setIsCheckingLicense(false);
+      if (licenseExists === true) {
+        setLicenseError("This license number is already registered with another account");
+      } else {
+        setLicenseError("");
+      }
+    }
+  }, [licenseExists]);
+
   // Initialize form with user data when it's loaded
   useEffect(() => {
-    if (userData && !formInitialized) {
+    if (userData !== undefined && !formInitialized) {
       console.log("Loading user data:", userData);
-      setFormData({
-        firstName: userData.firstName || "",
-        lastName: userData.lastName || "",
-        licenseNumber: userData.licenseNumber || "",
-        licenseImageUrl: userData.licenseImageUrl || null,
-        aadharImageUrl: userData.aadharImageUrl || null,
-        aadharBackImageUrl: userData.aadharBackImageUrl || null,
-        profilePictureUrl: userData.profilePictureUrl || null,
-      });
-      setFormInitialized(true);
-    } else if (user && !formInitialized) {
-      // Fallback to Clerk data if Convex data is not available
-      setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        licenseNumber: "",
-        licenseImageUrl: null,
-        aadharImageUrl: null,
-        aadharBackImageUrl: null,
-        profilePictureUrl: null,
-      });
+      
+      // Check if userData exists and has properties
+      if (userData) {
+        setFormData({
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          licenseNumber: userData.licenseNumber || "",
+          licenseImageUrl: userData.licenseImageUrl || null,
+          aadharImageUrl: userData.aadharImageUrl || null,
+          aadharBackImageUrl: userData.aadharBackImageUrl || null,
+          profilePictureUrl: userData.profilePictureUrl || null,
+        });
+        
+        // Log the form data for debugging
+        console.log("Setting form data:", {
+          firstName: userData.firstName || "",
+          lastName: userData.lastName || "",
+          licenseNumber: userData.licenseNumber || "",
+          hasLicenseImage: !!userData.licenseImageUrl,
+          hasAadharImage: !!userData.aadharImageUrl,
+          hasAadharBackImage: !!userData.aadharBackImageUrl,
+          hasProfilePicture: !!userData.profilePictureUrl,
+          isComplete: userData.profileComplete
+        });
+      } else if (user) {
+        // Fallback to Clerk data if Convex data is not available
+        setFormData({
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          licenseNumber: "",
+          licenseImageUrl: null,
+          aadharImageUrl: null,
+          aadharBackImageUrl: null,
+          profilePictureUrl: null,
+        });
+      }
+      
       setFormInitialized(true);
     }
   }, [userData, user, formInitialized]);
@@ -82,6 +123,19 @@ function ProfileContent() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Special handling for license number
+    if (name === 'licenseNumber') {
+      // Only trigger validation if the license number actually changed from what's in DB
+      if (userData && value !== userData.licenseNumber) {
+        setLicenseNumberChanged(true);
+        setIsCheckingLicense(true);
+      } else {
+        setLicenseNumberChanged(false);
+        setLicenseError("");
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -118,6 +172,18 @@ function ProfileContent() {
       toast.error("Please upload your profile picture");
       return;
     }
+
+    // Check for license number error
+    if (licenseError) {
+      toast.error(licenseError);
+      return;
+    }
+
+    // If checking license, wait until check is complete
+    if (isCheckingLicense) {
+      toast.info("Please wait while we verify your license number");
+      return;
+    }
     
     setIsSubmitting(true);
     
@@ -130,7 +196,7 @@ function ProfileContent() {
         updateData: {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          licenseNumber: formData.licenseNumber,
+          licenseNumber: formData.licenseNumber.trim(),
           licenseImageUrl: formData.licenseImageUrl,
           aadharImageUrl: formData.aadharImageUrl,
           aadharBackImageUrl: formData.aadharBackImageUrl,
@@ -150,7 +216,7 @@ function ProfileContent() {
     } catch (error) {
       console.error("Error updating profile:", error);
       setSubmissionErrors(prev => [...prev, error.message || "Unknown error"]);
-      toast.error("Failed to update profile. Please try again.");
+      toast.error(error.message || "Failed to update profile. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -165,6 +231,18 @@ function ProfileContent() {
     );
   }
 
+  // Profile completion status check
+  const profileIsComplete = Boolean(
+    userData?.profileComplete === true &&
+    userData?.firstName &&
+    userData?.lastName &&
+    userData?.licenseNumber &&
+    userData?.licenseImageUrl &&
+    userData?.aadharImageUrl &&
+    userData?.aadharBackImageUrl && 
+    userData?.profilePictureUrl
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <motion.div
@@ -172,9 +250,13 @@ function ProfileContent() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900">Complete Your Profile</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {profileIsComplete ? "Update Your Profile" : "Complete Your Profile"}
+        </h1>
         <p className="mt-2 text-gray-600">
-          Please provide your details and documents to start booking bikes
+          {profileIsComplete 
+            ? "Your profile is complete. You can update your information if needed." 
+            : "Please provide your details and documents to start booking bikes"}
         </p>
       </motion.div>
       
@@ -195,6 +277,27 @@ function ProfileContent() {
                     <li key={index}>{error}</li>
                   ))}
                 </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Profile completed banner */}
+      {profileIsComplete && (
+        <div className="mb-6 bg-green-50 border-l-4 border-green-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-green-800">Profile Complete</h3>
+              <div className="mt-2 text-sm text-green-700">
+                <p>
+                  Your profile is complete and verified. You can now book bikes.
+                </p>
               </div>
             </div>
           </div>
@@ -275,19 +378,32 @@ function ProfileContent() {
               <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-700 mb-1">
                 License Number *
               </label>
-              <input
-                type="text"
-                id="licenseNumber"
-                name="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                required
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                placeholder="Your driver's license number"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                This is required for booking bikes and will be verified during pickup
-              </p>
+              <div>
+                <input
+                  type="text"
+                  id="licenseNumber"
+                  name="licenseNumber"
+                  value={formData.licenseNumber}
+                  onChange={handleChange}
+                  required
+                  className={`block w-full rounded-md shadow-sm focus:ring-primary sm:text-sm ${
+                    licenseError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary'
+                  }`}
+                  placeholder="Your driver's license number"
+                />
+                {isCheckingLicense && (
+                  <p className="mt-1 text-sm text-blue-500">
+                    <span className="inline-block mr-2 animate-spin">⟳</span>
+                    Verifying license number...
+                  </p>
+                )}
+                {licenseError && (
+                  <p className="mt-1 text-sm text-red-600">{licenseError}</p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  This is required for booking bikes and will be verified during pickup
+                </p>
+              </div>
             </div>
           </div>
           
@@ -330,16 +446,16 @@ function ProfileContent() {
           <div className="mt-8 flex justify-end">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isCheckingLicense || !!licenseError}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Saving..." : isProfileComplete ? "Update Profile" : "Complete Profile"}
+              {isSubmitting ? "Saving..." : profileIsComplete ? "Update Profile" : "Complete Profile"}
             </button>
           </div>
         </form>
       </div>
       
-      {isProfileComplete === false && (
+      {!profileIsComplete && (
         <div className="mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4">
           <div className="flex">
             <div className="flex-shrink-0">

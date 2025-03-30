@@ -190,8 +190,8 @@ export default function AdminBikes() {
                               className="rounded-full object-cover"
                               src={bike.imageUrl || "/placeholder-bike.jpg"} 
                               alt={bike.name}
-                              width={40}
-                              height={40}
+                              width={50}
+                              height={50}
                             />
                           </div>
                           <div className="ml-4">

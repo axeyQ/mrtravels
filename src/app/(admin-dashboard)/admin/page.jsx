@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AdminDashboard() {
   const { user, isLoaded: isUserLoaded } = useUser();
@@ -178,7 +179,9 @@ export default function AdminDashboard() {
                   <div className="flex justify-between">
                     <div className="flex items-center">
                       <div className="h-10 w-10 mr-3">
-                        <img 
+                        <Image
+                          height={"30"}
+                          width={"30"} 
                           src={bike.imageUrl || "/placeholder-bike.jpg"} 
                           alt={bike.name}
                           className="h-10 w-10 rounded-full object-cover"

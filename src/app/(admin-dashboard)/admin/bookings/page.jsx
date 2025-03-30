@@ -4,11 +4,15 @@ import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { BiCheck, BiX, BiCalendar, BiMoney } from "react-icons/bi";
+import { BiCheck, BiX, BiCalendar, BiMoney, BiUser } from "react-icons/bi";
 import Link from "next/link";
+import Image from "next/image";
+import CustomerProfileModal from "@/components/admin/CustomerProfileModal";
+import AdminCustomBookingModal from "@/components/admin/AdminCustomBookingModal";
 
 export default function AdminBookings() {
   const { user, isLoaded: isUserLoaded } = useUser();
+  
   // Fetch all bookings
   const bookings = useQuery(
     api.bookings.getAllBookings,
@@ -17,22 +21,36 @@ export default function AdminBookings() {
   
   // Fetch all bikes to get their names
   const bikes = useQuery(api.bikes.getAllBikes) || [];
-  const isLoading = !isUserLoaded || bookings === undefined || bikes === undefined;
+  
+  // Fetch all users to get profile information
+  const users = useQuery(
+    api.users.listUsers,
+    isUserLoaded && user ? { adminId: user.id } : null
+  ) || [];
+  
+  const isLoading = !isUserLoaded || bookings === undefined || bikes === undefined || users === undefined;
   
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [statusToUpdate, setStatusToUpdate] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [showCustomBookingModal, setShowCustomBookingModal] = useState(false);
   const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
   const completePayment = useMutation(api.bookings.completePayment);
   
-  // Create a map of bike IDs to bike names
+  // Create a map of bike IDs to bike objects
   const bikeMap = bikes.reduce((map, bike) => {
     map[bike._id] = bike;
     return map;
   }, {});
   
+  // Create a map of user IDs to user data
+  const userMap = users.reduce((map, userData) => {
+    map[userData.userId] = userData;
+    return map;
+  }, {});
+
   // Handle updating booking status
   const handleUpdateStatus = async () => {
     if (!isUserLoaded || !user || !selectedBooking || !statusToUpdate) return;
@@ -72,7 +90,12 @@ export default function AdminBookings() {
       toast.error(error.message || "Failed to complete payment");
     }
   };
-  
+
+  // Function to show the customer profile modal
+  const handleViewCustomerProfile = (userId) => {
+    setSelectedCustomerId(userId);
+  };
+
   // Status badge component
   const StatusBadge = ({ status }) => {
     let colorClass = "";
@@ -92,7 +115,6 @@ export default function AdminBookings() {
       default:
         colorClass = "bg-gray-100 text-gray-800";
     }
-    
     return (
       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${colorClass}`}>
         {status}
@@ -108,15 +130,15 @@ export default function AdminBookings() {
     let label = paymentStatus;
     
     switch (paymentStatus) {
-      case "pending":
+      case 'pending':
         colorClass = "bg-yellow-100 text-yellow-800";
         label = "Payment Pending";
         break;
-      case "deposit_paid":
+      case 'deposit_paid':
         colorClass = "bg-green-100 text-green-800";
         label = "Deposit Paid";
         break;
-      case "fully_paid":
+      case 'fully_paid':
         colorClass = "bg-blue-100 text-blue-800";
         label = "Fully Paid";
         break;
@@ -130,7 +152,7 @@ export default function AdminBookings() {
       </span>
     );
   };
-  
+
   if (isLoading) {
     return (
       <div className="animate-pulse">
@@ -157,13 +179,41 @@ export default function AdminBookings() {
       </div>
     );
   }
-  
+
   // Sort bookings by start time (newest first)
   const sortedBookings = [...bookings].sort((a, b) => b.startTime - a.startTime);
-  
+
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Manage Bookings</h1>
+      <div className="flex justify-between items-center mb-6">
+  <h1 className="text-2xl font-bold">Manage Bookings</h1>
+  <button
+    onClick={() => setShowCustomBookingModal(true)}
+    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600"
+  >
+    <svg 
+      className="mr-2 h-5 w-5" 
+      fill="none" 
+      viewBox="0 0 24 24" 
+      stroke="currentColor"
+    >
+      <path 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        strokeWidth={2} 
+        d="M12 4v16m8-8H4" 
+      />
+    </svg>
+    Create Custom Booking
+  </button>
+</div>
+
+{showCustomBookingModal && (
+  <AdminCustomBookingModal
+    onClose={() => setShowCustomBookingModal(false)}
+    adminId={user.id}
+  />
+)}
       <div className="bg-white rounded-lg shadow">
         {sortedBookings.length === 0 ? (
           <div className="p-6 text-center">
@@ -197,21 +247,63 @@ export default function AdminBookings() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedBookings.map((booking) => {
                   const bike = bikeMap[booking.bikeId];
+                  const customerData = userMap[booking.userId] || null;
+                  
                   return (
                     <tr key={booking._id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{booking.userName}</div>
-                        <div className="text-sm text-gray-500">{booking.userPhone}</div>
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 relative rounded-full overflow-hidden bg-gray-200">
+                            {customerData && customerData.profilePictureUrl ? (
+                              <Image
+                                src={customerData.profilePictureUrl}
+                                alt={`${booking.userName} profile`}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
+                            ) : customerData && customerData.imageUrl ? (
+                              <Image
+                                src={customerData.imageUrl}
+                                alt={`${booking.userName} profile`}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 flex items-center justify-center">
+                                <svg className="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="flex items-center">
+                              <div className="text-sm font-medium text-gray-900">{booking.userName}</div>
+                              <button
+                                onClick={() => handleViewCustomerProfile(booking.userId)}
+                                className="ml-2 text-blue-600 hover:text-blue-800"
+                                title="View customer profile"
+                              >
+                                <BiUser className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="text-sm text-gray-500">{booking.userPhone}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {bike && (
                             <>
-                              <div className="h-8 w-8 flex-shrink-0">
-                                <img 
-                                  className="h-8 w-8 rounded-full object-cover" 
-                                  src={bike.imageUrl || "/placeholder-bike.jpg"} 
-                                  alt="" 
+                              <div className="h-8 w-8 flex-shrink-0 relative">
+                                <Image
+                                  src={bike.imageUrl || "/placeholder-bike.jpg"}
+                                  alt={bike.name}
+                                  className="rounded-full object-cover"
+                                  fill
+                                  sizes="32px"
                                 />
                               </div>
                               <div className="ml-3">
@@ -273,7 +365,6 @@ export default function AdminBookings() {
                             </button>
                           </div>
                         )}
-                        
                         {booking.status === "confirmed" && (
                           <div className="flex space-x-2">
                             {/* For confirmed bookings with deposit paid, show collect remaining payment option */}
@@ -320,7 +411,7 @@ export default function AdminBookings() {
           </div>
         )}
       </div>
-      
+
       {/* Status Update Confirmation Modal */}
       {selectedBooking && statusToUpdate && !showPaymentModal && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
@@ -355,7 +446,7 @@ export default function AdminBookings() {
           </div>
         </div>
       )}
-      
+
       {/* Payment Collection Modal */}
       {showPaymentModal && selectedBooking && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
@@ -363,7 +454,6 @@ export default function AdminBookings() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Collect Remaining Payment
             </h3>
-            
             <div className="bg-blue-50 p-4 rounded-md mb-6">
               <h4 className="text-sm font-medium text-blue-800 mb-2">Payment Details</h4>
               <div className="flex justify-between mb-1">
@@ -379,7 +469,6 @@ export default function AdminBookings() {
                 <span className="text-sm text-blue-900">₹{selectedBooking.remainingAmount || 0}</span>
               </div>
             </div>
-            
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Payment Method
@@ -426,7 +515,6 @@ export default function AdminBookings() {
                 </div>
               </div>
             </div>
-            
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => {
@@ -446,6 +534,14 @@ export default function AdminBookings() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Customer Profile Modal */}
+      {selectedCustomerId && (
+        <CustomerProfileModal 
+          userId={selectedCustomerId} 
+          onClose={() => setSelectedCustomerId(null)} 
+        />
       )}
     </div>
   );

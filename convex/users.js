@@ -72,6 +72,29 @@ export const getUser = query({
   },
 });
 
+// New function to check if license number already exists
+export const checkLicenseExists = query({
+  args: { 
+    licenseNumber: v.string(),
+    currentUserId: v.string() // Exclude current user from check
+  },
+  handler: async (ctx, args) => {
+    // Skip empty license numbers
+    if (!args.licenseNumber || args.licenseNumber.trim() === "") {
+      return false;
+    }
+    
+    // Find users with this license number
+    const users = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("licenseNumber"), args.licenseNumber.trim()))
+      .collect();
+      
+    // If there's a user with this license who is not the current user, return true
+    return users.some(user => user.userId !== args.currentUserId);
+  },
+});
+
 // Update user profile
 export const updateUserProfile = mutation({
   args: {
@@ -101,7 +124,22 @@ export const updateUserProfile = mutation({
     if (!args.licenseImageUrl || !args.aadharImageUrl) {
       throw new Error("Both license and Aadhar card images are required");
     }
-    
+        // Check if license number is already used by another user
+        if (args.licenseNumber !== user.licenseNumber) {
+          const licenseExists = await ctx.db
+            .query("users")
+            .filter(q => 
+              q.and(
+                q.eq(q.field("licenseNumber"), args.licenseNumber),
+                q.neq(q.field("userId"), args.userId)
+              )
+            )
+            .first();
+            
+          if (licenseExists) {
+            throw new Error("This license number is already registered with another account");
+          }
+        }
     console.log("Updating user profile with complete data:", {
       userId: args.userId,
       firstName: args.firstName,
@@ -286,7 +324,25 @@ export const directUpdateUser = mutation({
     if (!user) {
       throw new Error("User not found");
     }
-
+   // Check if license number is already used by another user when it's changing
+   if (updateData.licenseNumber && 
+    updateData.licenseNumber !== user.licenseNumber && 
+    updateData.licenseNumber.trim() !== "") {
+  
+  const licenseExists = await ctx.db
+    .query("users")
+    .filter(q => 
+      q.and(
+        q.eq(q.field("licenseNumber"), updateData.licenseNumber.trim()),
+        q.neq(q.field("userId"), userId)
+      )
+    )
+    .first();
+    
+  if (licenseExists) {
+    throw new Error("This license number is already registered with another account");
+  }
+}
     // Create a clean updateData object without any unnecessary fields
     const cleanUpdateData = { ...updateData };
     

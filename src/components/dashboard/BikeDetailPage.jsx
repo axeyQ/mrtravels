@@ -9,14 +9,16 @@ import { toast } from 'react-toastify';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import Image from 'next/image';
+
 import TermsAndConditionsModal from '@/components/ui/TermsAndConditionsModal';
+import TimeLimitedDatePicker from '../ui/TimeLimitedDatePicker';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
   const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
   const bike = useQuery(api.bikes.getBikeById, { bikeId });
   const isLoading = bike === undefined;
-  
+
   // Get current time and calculate time limit (30 minutes from now)
   const currentTime = new Date();
   const timeLimit = new Date(currentTime.getTime() + 30 * 60 * 1000);
@@ -25,13 +27,13 @@ export default function BikeDetailPage({ bikeId }) {
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
-  
-  // Check if user profile is complete
+
+  // Check if user profile is complete - only if user is signed in
   const isProfileComplete = useQuery(
     api.users.isProfileComplete,
-    isUserLoaded && isSignedIn ? { userId: user.id } : null
+    isUserLoaded && isSignedIn ? { userId: user.id } : "skip"
   );
-  
+
   // Get availability information for the selected time period
   const availabilityInfo = useQuery(
     api.bookings.checkBikeAvailability,
@@ -41,21 +43,23 @@ export default function BikeDetailPage({ bikeId }) {
       endTime: endDate?.getTime() || Date.now() + 2 * 60 * 60 * 1000
     }
   );
-  
+
   // Check availability when date changes
   useEffect(() => {
     setIsCheckingAvailability(true);
     // Availability will be automatically refetched when startDate or endDate changes
     setTimeout(() => setIsCheckingAvailability(false), 500); // brief delay for UX
   }, [startDate, endDate]);
-  
+
   const createBooking = useMutation(api.bookings.createBooking);
-  
+
   // Validate if selected start time is within 30 minutes from now
   const isStartTimeValid = () => {
-    return startDate >= currentTime && startDate <= timeLimit;
+    const now = new Date();
+    const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    return startDate >= now && startDate <= thirtyMinutesFromNow;
   };
-  
+
   // Function to open terms modal
   const handleOpenTermsModal = () => {
     if (!isUserLoaded || !isSignedIn) {
@@ -90,21 +94,20 @@ export default function BikeDetailPage({ bikeId }) {
     // If all validations pass, open the terms modal
     setIsTermsModalOpen(true);
   };
-  
+
   // Proceed with booking after terms acceptance
   const handleBooking = async () => {
     setIsBookingLoading(true);
-    
     try {
       // Calculate hours and price
       const hours = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
       const totalPrice = hours * bike.pricePerHour;
       
       // Get name from available sources
-      const fullName = user ? 
-        `${user.firstName || ''} ${user.lastName || ''}`.trim() : 
+      const fullName = user ?
+        `${user.firstName || ''} ${user.lastName || ''}`.trim() :
         'Unknown';
-      
+        
       // IMPORTANT: These should ONLY be the fields that are defined in your schema
       const bookingData = {
         bikeId,
@@ -130,18 +133,18 @@ export default function BikeDetailPage({ bikeId }) {
       setIsBookingLoading(false);
     }
   };
-  
+
   if (isLoading) {
     return <BikeDetailSkeleton />;
   }
-  
+
   // Calculate estimated price
   const hours = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60));
   const estimatedPrice = hours * bike.pricePerHour;
   
   // Determine if the bike is available based on admin settings and bookings
   const isReallyAvailable = bike.isAvailable && (availabilityInfo?.isAvailable !== false);
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -157,12 +160,14 @@ export default function BikeDetailPage({ bikeId }) {
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 50vw"
           />
+
           {/* Availability tag */}
           {!bike.isAvailable && (
             <div className="absolute top-4 left-0 bg-red-600 text-white px-4 py-1 rounded-r-full font-medium">
               Currently Unavailable
             </div>
           )}
+          
           {/* Booking status tag */}
           {bike.isAvailable && !isReallyAvailable && (
             <div className="absolute top-4 left-0 bg-orange-600 text-white px-4 py-1 rounded-r-full font-medium">
@@ -170,6 +175,7 @@ export default function BikeDetailPage({ bikeId }) {
             </div>
           )}
         </motion.div>
+        
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -179,14 +185,17 @@ export default function BikeDetailPage({ bikeId }) {
             <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-sm font-medium text-blue-700">
               {bike.type}
             </span>
-            <span className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium ${isReallyAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+            <span className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium 
+              ${isReallyAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
               {isReallyAvailable ? "Available" : "Unavailable"}
             </span>
           </div>
+          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Description</h2>
             <p className="mt-2 text-gray-600">{bike.description || "No description available"}</p>
           </div>
+          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Features</h2>
             {bike.features && bike.features.length > 0 ? (
@@ -204,17 +213,34 @@ export default function BikeDetailPage({ bikeId }) {
               <p className="mt-2 text-gray-500">No features available</p>
             )}
           </div>
+          
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Booking</h2>
             {bike.isAvailable ? (
               <div className="mt-2">
+                {/* Sign in prompt for non-signed in users */}
+                {!isSignedIn && (
+                  <div className="bg-blue-50 p-4 rounded-md mb-4">
+                    <h3 className="font-medium text-blue-800">Sign in Required</h3>
+                    <p className="text-blue-700 mt-1">
+                      You need to sign in to book this bike.
+                    </p>
+                    <button
+                      onClick={() => router.push(`/sign-in?redirect=/bikes/${bikeId}`)}
+                      className="mt-2 inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50"
+                    >
+                      Sign In to Book
+                    </button>
+                  </div>
+                )}
+                
                 {/* Profile Completion Warning */}
-                {isProfileComplete === false && (
+                {isSignedIn && isProfileComplete === false && (
                   <div className="bg-yellow-50 p-4 rounded-md mb-4">
                     <h3 className="font-medium text-yellow-800">Profile Incomplete</h3>
                     <p className="text-yellow-700 mt-1">
-                      You need to complete your profile before booking. 
-                      <button 
+                      You need to complete your profile before booking.
+                      <button
                         onClick={() => router.push(`/profile?redirect=/bikes/${bikeId}`)}
                         className="ml-2 text-yellow-800 font-medium underline"
                       >
@@ -234,37 +260,28 @@ export default function BikeDetailPage({ bikeId }) {
                     <strong>Note:</strong> You can only book for start times within the next 30 minutes.
                   </p>
                 </div>
+                
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Start Time</label>
-                    <DatePicker
-                      selected={startDate}
-                      onChange={(date) => setStartDate(date)}
-                      showTimeSelect
-                      dateFormat="MMMM d, yyyy h:mm aa"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                      minDate={new Date()}
-                      maxDate={timeLimit}
-                      placeholderText="Select a time within 30 minutes"
-                    />
-                    {!isStartTimeValid() && (
-                      <p className="mt-1 text-xs text-red-600">
-                        Start time must be within the next 30 minutes
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">End Time</label>
-                    <DatePicker
-                      selected={endDate}
-                      onChange={(date) => setEndDate(date)}
-                      showTimeSelect
-                      dateFormat="MMMM d, yyyy h:mm aa"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
-                      minDate={startDate}
-                    />
-                  </div>
-                </div>
+  <TimeLimitedDatePicker
+    selectedDate={startDate}
+    onChange={(date) => setStartDate(date)}
+    label="Start Time"
+    error={!isStartTimeValid() ? "Start time must be within the next 30 minutes" : null}
+  />
+  <div>
+    <label className="block text-sm font-medium text-gray-700">End Time</label>
+    <DatePicker
+      selected={endDate}
+      onChange={(date) => setEndDate(date)}
+      showTimeSelect
+      timeIntervals={30}
+      dateFormat="MMMM d, yyyy h:mm aa"
+      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+      minDate={startDate}
+    />
+  </div>
+</div>
+                
                 {/* Availability indicator */}
                 {isCheckingAvailability ? (
                   <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse">
@@ -286,6 +303,7 @@ export default function BikeDetailPage({ bikeId }) {
                     </p>
                   </div>
                 )}
+                
                 {/* Updated price breakdown with deposit highlight */}
                 <div className="bg-gray-50 p-4 rounded-md mb-4">
                   <div className="flex justify-between">
@@ -312,21 +330,24 @@ export default function BikeDetailPage({ bikeId }) {
                     * ₹40 from deposit goes to bike owner, ₹2 is platform fee
                   </div>
                 </div>
+                
                 <button
                   onClick={handleOpenTermsModal}
-                  disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid() || isProfileComplete === false}
+                  disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid() || (isSignedIn && isProfileComplete === false) || !isSignedIn}
                   className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                    ${isReallyAvailable && isStartTimeValid() && isProfileComplete !== false
+                    ${isReallyAvailable && isStartTimeValid() && (isSignedIn ? isProfileComplete !== false : false)
                       ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
                       : 'bg-gray-400 cursor-not-allowed'}`}
                 >
                   {isBookingLoading
                     ? "Processing..."
+                    : !isSignedIn
+                    ? "Sign In to Book"
                     : isReallyAvailable && isStartTimeValid()
-                      ? isProfileComplete === false
-                        ? "Complete Profile to Book"
-                        : "Book & Pay ₹42 Deposit"
-                      : "Unavailable"
+                    ? isProfileComplete === false
+                      ? "Complete Profile to Book"
+                      : "Book & Pay ₹42 Deposit"
+                    : "Unavailable"
                   }
                 </button>
               </div>
@@ -336,9 +357,9 @@ export default function BikeDetailPage({ bikeId }) {
           </div>
         </motion.div>
       </div>
-
+      
       {/* Terms and Conditions Modal */}
-      <TermsAndConditionsModal 
+      <TermsAndConditionsModal
         isOpen={isTermsModalOpen}
         onClose={() => setIsTermsModalOpen(false)}
         onAccept={() => {

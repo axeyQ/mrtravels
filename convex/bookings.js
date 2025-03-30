@@ -484,3 +484,106 @@ export const getBikeBookingById = query({
     return await ctx.db.get(args.bookingId);
   },
 });
+
+export const createCustomBooking = mutation({
+  args: {
+    adminId: v.string(),
+    bikeId: v.id("bikes"),
+    userId: v.string(),
+    userName: v.string(),
+    userPhone: v.string(),
+    startTime: v.number(),
+    endTime: v.number(),
+    totalPrice: v.number(),
+    notes: v.optional(v.string()),
+    paymentStatus: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { 
+      adminId, 
+      bikeId, 
+      userId, 
+      userName, 
+      userPhone, 
+      startTime, 
+      endTime, 
+      totalPrice, 
+      notes = "",
+      paymentStatus = "pending"
+    } = args;
+    
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", adminId))
+      .unique();
+      
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can create custom bookings");
+    }
+    
+    // Check if bike exists
+    const bike = await ctx.db.get(bikeId);
+    if (!bike) {
+      throw new Error("Bike not found");
+    }
+    
+    // Check if user exists
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+      
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Create booking with admin flag
+    const bookingId = await ctx.db.insert("bookings", {
+      bikeId,
+      userId,
+      userName,
+      userPhone,
+      startTime,
+      endTime,
+      totalPrice,
+      status: "confirmed", // Custom bookings are automatically confirmed
+      paymentStatus, // Allow admin to specify payment status
+      notes, // Store any admin notes
+      isAdminBooking: true, // Mark as admin booking
+      createdAt: Date.now(), // Add creation timestamp
+    });
+    
+    return { bookingId, success: true };
+  },
+});
+
+// Get all available users for admin to select from
+export const getAllUserBasicInfo = query({
+  args: { adminId: v.string() },
+  handler: async (ctx, args) => {
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+      
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can access user information");
+    }
+    
+    // Get all users with basic info only
+    const users = await ctx.db
+      .query("users")
+      .collect();
+    
+    // Return only necessary fields
+    return users.map(user => ({
+      userId: user.userId,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      phone: user.phoneNumber || "",
+      profileComplete: user.profileComplete || false,
+      profilePictureUrl: user.profilePictureUrl || user.imageUrl || null,
+    }));
+  },
+});
