@@ -326,21 +326,22 @@ function ProfileContent() {
           
           {/* Profile Picture Section */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Profile Picture</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Please upload a clear photo of yourself. This will be used for identification.
-            </p>
-            <div className="max-w-md mx-auto">
-              <CloudinaryDocumentUpload
-                id="profilePicture"
-                label="Profile Picture"
-                helpText="A recent photo of yourself"
-                value={formData.profilePictureUrl}
-                folder="profile_pictures"
-                onChange={(url) => setFormData(prev => ({ ...prev, profilePictureUrl: url }))}
-              />
-            </div>
-          </div>
+  <h3 className="text-lg font-medium text-gray-900 mb-3">Profile Picture</h3>
+  <p className="text-sm text-gray-500 mb-4">
+    Please upload a clear photo of yourself. This will be used for identification.
+  </p>
+  <div className="max-w-md mx-auto">
+    <CloudinaryDocumentUpload
+      id="profilePicture"
+      label="Profile Picture"
+      helpText="A recent photo of yourself"
+      value={formData.profilePictureUrl}
+      folder="profile_pictures"
+      onChange={(url) => setFormData(prev => ({ ...prev, profilePictureUrl: url }))}
+      isProfilePicture={true} // Add this prop to identify it as a profile picture
+    />
+  </div>
+</div>
           
           {/* Personal Information Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">

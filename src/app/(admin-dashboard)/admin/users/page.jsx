@@ -1,11 +1,12 @@
 "use client";
-
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { BiUserCheck, BiUserX } from "react-icons/bi";
+import { BiUserCheck, BiUserX, BiFile, BiUser } from "react-icons/bi";
+import Image from "next/image";
+import UserDetailView from "@/components/admin/UserDetailView";
 
 export default function AdminUsers() {
   const { user, isLoaded: isUserLoaded } = useUser();
@@ -20,6 +21,8 @@ export default function AdminUsers() {
   
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState("");
+  const [showUserDetailView, setShowUserDetailView] = useState(false);
+  const [detailViewUserId, setDetailViewUserId] = useState(null);
   
   const updateUserRole = useMutation(api.users.updateUserRole);
   
@@ -41,6 +44,7 @@ export default function AdminUsers() {
         userId: selectedUser.userId,
         newRole,
       });
+      
       toast.success(`User role updated to ${newRole} successfully`);
       setSelectedUser(null);
       setNewRole("");
@@ -53,6 +57,12 @@ export default function AdminUsers() {
   // Format date
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleDateString();
+  };
+  
+  // View user details
+  const handleViewUserDetails = (userId) => {
+    setDetailViewUserId(userId);
+    setShowUserDetailView(true);
   };
   
   if (isLoading) {
@@ -95,7 +105,6 @@ export default function AdminUsers() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Manage Users</h1>
-      
       <div className="bg-white rounded-lg shadow">
         {sortedUsers.length === 0 ? (
           <div className="p-6 text-center">
@@ -107,13 +116,13 @@ export default function AdminUsers() {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
+                    User
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Phone
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
+                    Documents
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
@@ -127,18 +136,64 @@ export default function AdminUsers() {
                 {sortedUsers.map((userData) => (
                   <tr key={userData._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {userData.firstName} {userData.lastName}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {userData.userId === user?.id ? "(You)" : ""}
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 relative rounded-full overflow-hidden bg-gray-100">
+                          {userData.profilePictureUrl ? (
+                            <Image
+                              src={userData.profilePictureUrl}
+                              alt={userData.firstName}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          ) : userData.imageUrl ? (
+                            <Image
+                              src={userData.imageUrl}
+                              alt={userData.firstName}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 flex items-center justify-center text-gray-500">
+                              <BiUser className="w-6 h-6" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {userData.firstName} {userData.lastName}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {userData.userId === user?.id ? "(You)" : formatDate(userData.createdAt)}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {userData.phoneNumber}
+                      {userData.phoneNumber || "Not provided"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(userData.createdAt)}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex space-x-1">
+                        {userData.licenseImageUrl && (
+                          <span className="inline-flex items-center text-sm text-blue-600" title="License">
+                            <BiFile className="h-5 w-5" />
+                          </span>
+                        )}
+                        {userData.aadharImageUrl && (
+                          <span className="inline-flex items-center text-sm text-green-600" title="Aadhar Front">
+                            <BiFile className="h-5 w-5" />
+                          </span>
+                        )}
+                        {userData.aadharBackImageUrl && (
+                          <span className="inline-flex items-center text-sm text-green-600" title="Aadhar Back">
+                            <BiFile className="h-5 w-5" />
+                          </span>
+                        )}
+                        {!userData.licenseImageUrl && !userData.aadharImageUrl && !userData.aadharBackImageUrl && (
+                          <span className="text-sm text-gray-400">No documents</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -148,33 +203,45 @@ export default function AdminUsers() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {userData.userId !== user?.id && (
-                        <div className="flex space-x-2">
-                          {userData.role === "user" ? (
-                            <button
-                              onClick={() => {
-                                setSelectedUser(userData);
-                                setNewRole("admin");
-                              }}
-                              className="text-purple-600 hover:text-purple-800"
-                              title="Make admin"
-                            >
-                              <BiUserCheck className="h-5 w-5" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedUser(userData);
-                                setNewRole("user");
-                              }}
-                              className="text-orange-600 hover:text-orange-800"
-                              title="Remove admin"
-                            >
-                              <BiUserX className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <div className="flex space-x-3">
+                        {/* View user details button */}
+                        <button
+                          onClick={() => handleViewUserDetails(userData.userId)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="View user details"
+                        >
+                          <BiUser className="h-5 w-5" />
+                        </button>
+                        
+                        {/* Role change buttons (only if not viewing self) */}
+                        {userData.userId !== user?.id && (
+                          <div className="flex space-x-2">
+                            {userData.role === "user" ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(userData);
+                                  setNewRole("admin");
+                                }}
+                                className="text-purple-600 hover:text-purple-800"
+                                title="Make admin"
+                              >
+                                <BiUserCheck className="h-5 w-5" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(userData);
+                                  setNewRole("user");
+                                }}
+                                className="text-orange-600 hover:text-orange-800"
+                                title="Remove admin"
+                              >
+                                <BiUserX className="h-5 w-5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -192,14 +259,22 @@ export default function AdminUsers() {
               Confirm Role Change
             </h3>
             <p className="text-gray-500 mb-6">
-              Are you sure you want to {newRole === "admin" ? "promote" : "demote"} <span className="font-medium">{selectedUser.firstName} {selectedUser.lastName}</span> to {newRole}?
+              Are you sure you want to {newRole === "admin" ? "promote" : "demote"}{" "}
+              <span className="font-medium">
+                {selectedUser.firstName} {selectedUser.lastName}
+              </span>{" "}
+              to {newRole}?
             </p>
             {newRole === "admin" && (
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <div className="ml-3">
@@ -231,6 +306,18 @@ export default function AdminUsers() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* User Detail View Modal */}
+      {showUserDetailView && detailViewUserId && (
+        <UserDetailView
+          userId={detailViewUserId}
+          adminId={user.id}
+          onClose={() => {
+            setShowUserDetailView(false);
+            setDetailViewUserId(null);
+          }}
+        />
       )}
     </div>
   );

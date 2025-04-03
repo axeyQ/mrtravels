@@ -4,6 +4,8 @@ import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useState } from "react";
+import ProfilePictureSync from "@/components/auth/ProfilePictureSync";
+import ActivityLogger from "@/components/utils/ActivityLogger";
 
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
 
@@ -13,6 +15,8 @@ export function Providers({ children }) {
   return (
     <ClerkProvider>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+       <ActivityLogger/>        
+       <ProfilePictureSync/>
         {children}
       </ConvexProviderWithClerk>
     </ClerkProvider>

@@ -27,7 +27,7 @@ export default function Footer() {
           </div>
           <div className="mt-8 md:order-1 md:mt-0">
             <p className="text-center text-xs leading-5 text-gray-500">
-              &copy; {new Date().getFullYear()} BikeFlix. All rights reserved.
+              <a target='_blank' href="https://axeyqs.vercel.app/">Designed and Developed by &copy; {new Date().getFullYear()} axeyQ. All rights reserved.</a>
             </p>
           </div>
         </div>

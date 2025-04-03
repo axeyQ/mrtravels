@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
+import { useUser } from '@clerk/nextjs';
 
 export default function CloudinaryDocumentUpload({
   label,
@@ -11,12 +12,13 @@ export default function CloudinaryDocumentUpload({
   helpText,
   id,
   folder = "user_documents",
-  acceptTypes = "image/jpeg,image/png,image/jpg"
+  acceptTypes = "image/jpeg,image/png,image/jpg",
+  isProfilePicture=false,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(value || null);
   const fileInputRef = useRef(null);
-
+  const { user } = useUser(); // Get Clerk user
   // Update preview URL when value prop changes
   useEffect(() => {
     if (value) {
@@ -67,6 +69,17 @@ export default function CloudinaryDocumentUpload({
       }
       
       const data = await response.json();
+
+            // If this is a profile picture and we have a Clerk user, update their profile image too
+            if (isProfilePicture && user) {
+              try {
+                await user.setProfileImage({ file });
+                console.log("Profile picture updated in Clerk");
+              } catch (clerkError) {
+                console.error("Failed to update profile in Clerk:", clerkError);
+                // Continue with the flow as we still want to update Convex
+              }
+            }
       
       // Call onChange with the Cloudinary URL
       onChange(data.url);
