@@ -494,7 +494,7 @@ function ProfileContent() {
               <div className="mb-6">
                 <div className="flex items-center mb-2">
                   <FileText className="h-4 w-4 mr-2 text-primary" />
-                  <span className="text-sm font-medium">Driver's License</span>
+                  <span className="text-sm font-medium">Driver&apos;s License</span>
                 </div>
                 <CloudinaryDocumentUpload
                   id="licenseImage"

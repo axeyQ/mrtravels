@@ -1,309 +1,311 @@
+// src/components/admin/CustomerProfileModal.jsx
 "use client";
-import { useState, useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { X, User, Phone, Calendar, CreditCard, Check, Shield } from 'lucide-react';
+import Image from 'next/image';
 
-export default function CustomerProfileModal({ userId, onClose }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [enlargedImage, setEnlargedImage] = useState(null);
-  
-  // Fetch user data
-  const userData = useQuery(api.users.getUser, { 
-    userId: userId || "" 
-  });
+export default function CustomerProfileModal({ isOpen, onClose, user }) {
+  const [activeTab, setActiveTab] = useState('personal');
 
-  useEffect(() => {
-    if (userData !== undefined) {
-      setIsLoading(false);
-    }
-  }, [userData]);
+  if (!isOpen || !user) return null;
 
-  // Close modal when escape key is pressed
-  useEffect(() => {
-    const handleEscapeKey = (e) => {
-      if (e.key === "Escape") {
-        if (enlargedImage) {
-          setEnlargedImage(null);
-        } else {
-          onClose();
-        }
-      }
-    };
-    
-    document.addEventListener("keydown", handleEscapeKey);
-    return () => {
-      document.removeEventListener("keydown", handleEscapeKey);
-    };
-  }, [onClose, enlargedImage]);
-
-  // Prevent background scrolling when modal is open
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
-
-  // Get verification status badges
-  const getVerificationStatus = () => {
-    if (!userData) return { status: "Unknown", color: "gray" };
-    
-    const hasLicense = !!userData.licenseImageUrl;
-    const hasAadhar = !!userData.aadharImageUrl && !!userData.aadharBackImageUrl;
-    const hasProfilePic = !!userData.profilePictureUrl;
-    
-    if (hasLicense && hasAadhar && hasProfilePic) {
-      return { status: "Fully Verified", color: "green" };
-    } else if (hasLicense || hasAadhar || hasProfilePic) {
-      return { status: "Partially Verified", color: "orange" };
-    } else {
-      return { status: "Not Verified", color: "red" };
-    }
+  // Function to determine verification status color
+  const getVerificationColor = (isVerified) => {
+    return isVerified ? 'text-green-600' : 'text-yellow-600';
   };
 
-  const verificationStatus = getVerificationStatus();
-
-  // Function to open an image in fullscreen view
-  const openImage = (e, imageUrl, title) => {
-    if (!imageUrl) return;
-    e.stopPropagation(); // Prevent event from bubbling up
-    setEnlargedImage({ url: imageUrl, title });
+  // Function to determine verification text
+  const getVerificationText = (isVerified) => {
+    return isVerified ? 'Verified' : 'Pending Verification';
   };
+
+  // Check if profile is complete by validating all required fields
+  const isProfileComplete = Boolean(
+    user.firstName &&
+    user.lastName &&
+    user.licenseNumber &&
+    user.licenseImageUrl &&
+    user.aadharImageUrl
+  );
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={(e) => e.stopPropagation()}>
-      {/* Enlarged image view */}
-      {enlargedImage && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50 p-4"
-          onClick={() => setEnlargedImage(null)}
-        >
-          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 text-white">
-              <h3 className="text-xl font-medium">{enlargedImage.title}</h3>
-              <button 
-                onClick={() => setEnlargedImage(null)} 
-                className="text-white hover:text-gray-300"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-lg bg-white shadow-xl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <h2 className="text-xl font-semibold text-gray-900">Customer Profile</h2>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x">
+          {/* Sidebar */}
+          <div className="p-6">
+            <div className="mb-6 text-center">
+              <div className="relative mx-auto h-24 w-24 overflow-hidden rounded-full border-2 border-primary">
+                {user.profilePictureUrl ? (
+                  <Image
+                    src={user.profilePictureUrl}
+                    alt={`${user.firstName} ${user.lastName}`}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-100">
+                    <User className="h-12 w-12 text-gray-400" />
+                  </div>
+                )}
+                <div className={`absolute bottom-0 right-0 h-5 w-5 rounded-full ${isProfileComplete ? 'bg-green-500' : 'bg-yellow-500'} border-2 border-white`}></div>
+              </div>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">
+                {user.firstName} {user.lastName}
+              </h3>
+              <p className="text-sm text-gray-500">{user.phoneNumber || "No phone number"}</p>
+
+              <div className="mt-3 flex justify-center">
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${isProfileComplete ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {isProfileComplete ? (
+                    <>
+                      <Check className="mr-1 h-3 w-3" />
+                      Complete
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="mr-1 h-3 w-3" />
+                      Incomplete
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <nav className="flex flex-col space-y-1">
+              <button
+                onClick={() => setActiveTab('personal')}
+                className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                  activeTab === 'personal' ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <User className="mr-3 h-5 w-5" />
+                Personal Information
               </button>
-            </div>
-            <div className="bg-white p-1 rounded">
-              <img 
-                src={enlargedImage.url} 
-                alt={enlargedImage.title} 
-                className="mx-auto max-h-[75vh] object-contain" 
-              />
-            </div>
-            <p className="text-center text-white text-sm mt-4">
-              Press ESC or click outside the image to close
-            </p>
+              <button
+                onClick={() => setActiveTab('documents')}
+                className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                  activeTab === 'documents' ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <CreditCard className="mr-3 h-5 w-5" />
+                ID Documents
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={`flex items-center rounded-md px-3 py-2 text-sm font-medium ${
+                  activeTab === 'activity' ? 'bg-primary text-white' : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <Calendar className="mr-3 h-5 w-5" />
+                Booking History
+              </button>
+            </nav>
+          </div>
+
+          {/* Content */}
+          <div className="col-span-2 max-h-[70vh] overflow-y-auto p-6">
+            {activeTab === 'personal' && (
+              <div>
+                <h3 className="mb-4 text-lg font-medium text-gray-900">Personal Information</h3>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div>
+                      <h4 className="mb-1 text-sm font-medium text-gray-500">First Name</h4>
+                      <p className="text-gray-900">{user.firstName || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <h4 className="mb-1 text-sm font-medium text-gray-500">Last Name</h4>
+                      <p className="text-gray-900">{user.lastName || "Not provided"}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-gray-500">Phone Number</h4>
+                    <div className="flex items-center">
+                      <Phone className="mr-2 h-4 w-4 text-gray-400" />
+                      <p className="text-gray-900">{user.phoneNumber || "Not provided"}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-gray-500">License Number</h4>
+                    <div className="flex items-center">
+                      <CreditCard className="mr-2 h-4 w-4 text-gray-400" />
+                      <p className="text-gray-900">{user.licenseNumber || "Not provided"}</p>
+                      {user.licenseNumber && (
+                        <span className={`ml-2 text-xs ${getVerificationColor(true)}`}>
+                          ({getVerificationText(true)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="mb-1 text-sm font-medium text-gray-500">Account Created</h4>
+                    <div className="flex items-center">
+                      <Calendar className="mr-2 h-4 w-4 text-gray-400" />
+                      <p className="text-gray-900">
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 border-t pt-6">
+                  <h3 className="mb-4 text-lg font-medium text-gray-900">Account Status</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Shield className="mr-2 h-5 w-5 text-gray-400" />
+                        <span className="text-sm text-gray-700">Profile Status</span>
+                      </div>
+                      <span className={`text-sm font-medium ${isProfileComplete ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {isProfileComplete ? 'Complete' : 'Incomplete'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <CreditCard className="mr-2 h-5 w-5 text-gray-400" />
+                        <span className="text-sm text-gray-700">Verification Status</span>
+                      </div>
+                      <span className={`text-sm font-medium ${isProfileComplete ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {isProfileComplete ? 'Verified' : 'Pending Verification'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'documents' && (
+              <div>
+                <h3 className="mb-4 text-lg font-medium text-gray-900">ID Documents</h3>
+                
+                {/* License */}
+                <div className="mb-6">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Driver's License</h4>
+                  <div className="relative rounded-lg border bg-gray-50 p-2">
+                    {user.licenseImageUrl ? (
+                      <div className="relative h-48 w-full overflow-hidden rounded border bg-white">
+                        <Image
+                          src={user.licenseImageUrl}
+                          alt="Driver's License"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-48 items-center justify-center rounded border bg-gray-100 p-4 text-center">
+                        <p className="text-sm text-gray-500">No license document uploaded</p>
+                      </div>
+                    )}
+                    {user.licenseImageUrl && (
+                      <div className="mt-2 flex justify-between">
+                        <span className="text-xs text-gray-500">
+                          License Number: {user.licenseNumber || "Not provided"}
+                        </span>
+                        <span className={`text-xs ${getVerificationColor(true)}`}>
+                          {getVerificationText(true)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Aadhar Card */}
+                <div className="mb-6">
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Aadhar Card (Front)</h4>
+                  <div className="relative rounded-lg border bg-gray-50 p-2">
+                    {user.aadharImageUrl ? (
+                      <div className="relative h-48 w-full overflow-hidden rounded border bg-white">
+                        <Image
+                          src={user.aadharImageUrl}
+                          alt="Aadhar Card (Front)"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-48 items-center justify-center rounded border bg-gray-100 p-4 text-center">
+                        <p className="text-sm text-gray-500">No Aadhar front image uploaded</p>
+                      </div>
+                    )}
+                    {user.aadharImageUrl && (
+                      <div className="mt-2 flex justify-end">
+                        <span className={`text-xs ${getVerificationColor(true)}`}>
+                          {getVerificationText(true)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Aadhar Card Back */}
+                <div>
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Aadhar Card (Back)</h4>
+                  <div className="relative rounded-lg border bg-gray-50 p-2">
+                    {user.aadharBackImageUrl ? (
+                      <div className="relative h-48 w-full overflow-hidden rounded border bg-white">
+                        <Image
+                          src={user.aadharBackImageUrl}
+                          alt="Aadhar Card (Back)"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex h-48 items-center justify-center rounded border bg-gray-100 p-4 text-center">
+                        <p className="text-sm text-gray-500">No Aadhar back image uploaded</p>
+                      </div>
+                    )}
+                    {user.aadharBackImageUrl && (
+                      <div className="mt-2 flex justify-end">
+                        <span className={`text-xs ${getVerificationColor(true)}`}>
+                          {getVerificationText(true)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'activity' && (
+              <div>
+                <h3 className="mb-4 text-lg font-medium text-gray-900">Booking History</h3>
+                <p className="text-sm text-gray-500">This section would display the user's booking history.</p>
+                
+                {/* Placeholder for booking history - would be populated with actual data */}
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-lg border p-4">
+                    <p className="text-sm text-gray-500">No booking history available for this user.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Main Modal */}
-      <div className="bg-white rounded-lg max-w-2xl w-full overflow-hidden">
-        {/* Modal Header */}
-        <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900">Customer Profile</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 focus:outline-none"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Modal Content */}
-        <div className="px-6 py-4 max-h-[80vh] overflow-y-auto">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : !userData ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">User information not found</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Profile Header */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                {/* Profile Picture */}
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-2 border-primary flex-shrink-0">
-                  {userData.profilePictureUrl ? (
-                    <div 
-                      className="w-full h-full cursor-pointer"
-                      onClick={(e) => openImage(e, userData.profilePictureUrl, "Profile Picture")}
-                    >
-                      <img
-                        src={userData.profilePictureUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : userData.imageUrl ? (
-                    <div 
-                      className="w-full h-full cursor-pointer"
-                      onClick={(e) => openImage(e, userData.imageUrl, "Profile Picture")}
-                    >
-                      <img
-                        src={userData.imageUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-gray-200 text-gray-400">
-                      <svg className="h-16 w-16" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {/* User Info */}
-                <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {userData.firstName} {userData.lastName}
-                  </h2>
-                  
-                  <p className="text-gray-500 mt-1">
-                    {userData.phoneNumber || "No phone number"}
-                  </p>
-                  
-                  <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
-                    <span 
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                        ${verificationStatus.color === 'green' ? 'bg-green-100 text-green-800' : 
-                          verificationStatus.color === 'orange' ? 'bg-orange-100 text-orange-800' : 
-                          'bg-red-100 text-red-800'}`}
-                    >
-                      {verificationStatus.status}
-                    </span>
-                    
-                    {userData.role === "admin" && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        Admin
-                      </span>
-                    )}
-                    
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {new Date(userData.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Verification Documents */}
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Verification Documents</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Driver's License */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-gray-700">Driver&apos;s License</h4>
-                    </div>
-                    <div className="p-4">
-                      {userData.licenseNumber && (
-                        <p className="text-sm text-gray-500 mb-2">
-                          License #: <span className="font-medium text-gray-700">{userData.licenseNumber}</span>
-                        </p>
-                      )}
-                      
-                      {userData.licenseImageUrl ? (
-                        <div 
-                          className="h-40 w-full mt-2 border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden"
-                        >
-                          <img
-                            src={userData.licenseImageUrl}
-                            alt="Driver's License"
-                            className="max-h-full max-w-full object-contain cursor-pointer"
-                            onClick={(e) => openImage(e, userData.licenseImageUrl, "Driver's License")}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/placeholder-document.jpg';
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-40 bg-gray-100 rounded mt-2">
-                          <p className="text-gray-400">No license uploaded</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Aadhar Card */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b">
-                      <h4 className="font-medium text-gray-700">Aadhar Card</h4>
-                    </div>
-                    <div className="p-4">
-                      {userData.aadharImageUrl ? (
-                        <div className="space-y-4">
-                          <div className="h-40 w-full relative border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden">
-                            <div className="absolute top-2 left-2 px-2 py-1 bg-gray-800 text-white text-xs rounded z-10">
-                              Front
-                            </div>
-                            <img
-                              src={userData.aadharImageUrl}
-                              alt="Aadhar Card (Front)"
-                              className="max-h-full max-w-full object-contain cursor-pointer"
-                              onClick={(e) => openImage(e, userData.aadharImageUrl, "Aadhar Card (Front)")}
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = '/placeholder-document.jpg';
-                              }}
-                            />
-                          </div>
-                          
-                          {userData.aadharBackImageUrl && (
-                            <div className="h-40 w-full relative border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden">
-                              <div className="absolute top-2 left-2 px-2 py-1 bg-gray-800 text-white text-xs rounded z-10">
-                                Back
-                              </div>
-                              <img
-                                src={userData.aadharBackImageUrl}
-                                alt="Aadhar Card (Back)"
-                                className="max-h-full max-w-full object-contain cursor-pointer"
-                                onClick={(e) => openImage(e, userData.aadharBackImageUrl, "Aadhar Card (Back)")}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/placeholder-document.jpg';
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-40 bg-gray-100 rounded">
-                          <p className="text-gray-400">No Aadhar card uploaded</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div className="bg-gray-50 px-6 py-3 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
