@@ -1,4 +1,5 @@
-// app/(admin-dashboard)/admin/layout.jsx
+// src/app/(admin-dashboard)/admin/layout.js
+// Updated admin layout that preserves the desktop view while optimizing for mobile
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminGuard from "@/components/admin/AdminGuard";
 
@@ -10,10 +11,14 @@ export const metadata = {
 export default function AdminLayout({ children }) {
   return (
     <AdminGuard>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50">
         <AdminSidebar />
-        <div className="flex-1 overflow-auto">
-          <main className="p-6">{children}</main>
+        
+        {/* Content area - correctly positioned for both desktop and mobile */}
+        <div className="flex-1 md:ml-64">
+          <main className="md:p-6 p-4 pb-20 md:pb-6 pt-16 md:pt-6">
+            {children}
+          </main>
         </div>
       </div>
     </AdminGuard>
