@@ -65,7 +65,7 @@ export default function TimeLimitedDatePicker({
       </Label>
       
       <div className="border rounded-md shadow-sm p-2 bg-white">
-        <p className="text-sm text-gray-600 mb-2">Today's Date: {currentTime.toLocaleDateString()}</p>
+        <p className="text-sm text-gray-600 mb-2">Today&apos;s Date: {currentTime.toLocaleDateString()}</p>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
           {availableTimes.map((time, index) => (

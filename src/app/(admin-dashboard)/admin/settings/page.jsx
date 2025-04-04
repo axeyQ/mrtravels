@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "react-toastify";
+import Image from "next/image";
 
 export default function AdminSettings() {
   const { user, isLoaded } = useUser();
@@ -134,7 +135,9 @@ export default function AdminSettings() {
         <div className="p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <img
+              <Image
+              height={"10"}
+              width={"10"}
                 className="h-12 w-12 rounded-full"
                 src={user?.imageUrl || "/placeholder-avatar.png"}
                 alt="Profile"
