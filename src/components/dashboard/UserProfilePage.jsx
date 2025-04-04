@@ -1,8 +1,9 @@
+// src/components/dashboard/UserProfilePage.jsx
 "use client";
 import { useState, useEffect, Suspense } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../../convex/\_generated/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -11,6 +12,7 @@ import CloudinaryDocumentUpload from '@/components/ui/CloudinaryDocumentUpload';
 import Image from 'next/image';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { ChevronDown, Check, Camera, FileText, Upload } from 'lucide-react';
 
 // Create a separate component that uses useSearchParams
 function ProfileContent() {
@@ -24,6 +26,7 @@ function ProfileContent() {
   const [licenseNumberChanged, setLicenseNumberChanged] = useState(false);
   const [isCheckingLicense, setIsCheckingLicense] = useState(false);
   const [licenseError, setLicenseError] = useState("");
+  const [activeSection, setActiveSection] = useState("personal");
 
   // Get current user data from database
   const userData = useQuery(
@@ -52,8 +55,8 @@ function ProfileContent() {
   // Query to check if license number already exists
   const licenseExists = useQuery(
     api.users.checkLicenseExists,
-    (licenseNumberChanged && formData.licenseNumber) ? 
-      { 
+    (licenseNumberChanged && formData.licenseNumber) ?
+      {
         licenseNumber: formData.licenseNumber,
         currentUserId: user?.id || ""
       } : "skip"
@@ -241,23 +244,40 @@ function ProfileContent() {
     userData?.licenseNumber &&
     userData?.licenseImageUrl &&
     userData?.aadharImageUrl &&
-    userData?.aadharBackImageUrl && 
+    userData?.aadharBackImageUrl &&
     userData?.profilePictureUrl
   );
 
+  // Calculate completion percentage for progress bar
+  const calculateCompletion = () => {
+    let completed = 0;
+    let total = 6; // Total required fields
+    
+    if (formData.firstName && formData.lastName) completed++;
+    if (formData.licenseNumber) completed++;
+    if (formData.profilePictureUrl) completed++;
+    if (formData.licenseImageUrl) completed++;
+    if (formData.aadharImageUrl) completed++;
+    if (formData.aadharBackImageUrl) completed++;
+    
+    return Math.round((completed / total) * 100);
+  };
+  
+  const completionPercentage = calculateCompletion();
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6"
       >
-        <h1 className="text-3xl font-bold text-gray-900">
-          {profileIsComplete ? "Update Your Profile" : "Complete Your Profile"}
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          {profileIsComplete ? "Your Profile" : "Complete Your Profile"}
         </h1>
         <p className="mt-2 text-gray-600">
-          {profileIsComplete 
-            ? "Your profile is complete. You can update your information if needed." 
+          {profileIsComplete
+            ? "Your profile is complete. You can update your information if needed."
             : "Please provide your details and documents to start booking bikes"}
         </p>
       </motion.div>
@@ -306,124 +326,192 @@ function ProfileContent() {
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
+      {/* Completion Progress Bar (mobile) */}
+      {!profileIsComplete && (
+        <div className="lg:hidden mb-6">
+          <div className="flex justify-between text-sm mb-1">
+            <span>Profile Completion</span>
+            <span>{completionPercentage}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              className="bg-primary h-2.5 rounded-full" 
+              style={{ width: `${completionPercentage}%` }}
+            ></div>
+          </div>
+        </div>
+      )}
+      
+      {/* Mobile navigation tabs */}
+      <div className="lg:hidden mb-4 border-b">
+        <div className="flex">
+          <button
+            onClick={() => setActiveSection("personal")}
+            className={`flex-1 py-2 text-sm font-medium ${
+              activeSection === "personal" 
+                ? "text-primary border-b-2 border-primary" 
+                : "text-gray-500"
+            }`}
+          >
+            Personal Info
+          </button>
+          <button
+            onClick={() => setActiveSection("documents")}
+            className={`flex-1 py-2 text-sm font-medium ${
+              activeSection === "documents" 
+                ? "text-primary border-b-2 border-primary" 
+                : "text-gray-500"
+            }`}
+          >
+            Documents
+          </button>
+        </div>
+      </div>
+      
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 md:p-8">
         <form onSubmit={handleSubmit}>
           {/* Profile Preview Section */}
-          {formData.profilePictureUrl && (
-            <div className="flex justify-center mb-6 bg-gray-50 p-4 rounded-lg">
-              <div className="text-center">
-                <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-primary">
-                  <Image 
-                    src={formData.profilePictureUrl} 
-                    alt="Profile Preview" 
-                    fill 
+          <div className="flex justify-center mb-6 bg-gray-50 p-4 rounded-lg">
+            <div className="text-center">
+              <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-primary">
+                {formData.profilePictureUrl ? (
+                  <Image
+                    src={formData.profilePictureUrl}
+                    alt="Profile Preview"
+                    fill
                     className="object-cover"
                     sizes="96px"
                   />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <Camera className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 text-sm text-gray-600">{formData.firstName} {formData.lastName}</p>
+              {!profileIsComplete && (
+                <p className="text-xs text-primary mt-1">Complete your profile to book bikes</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Personal Information Section - visible based on activeSection */}
+          {(activeSection === "personal" || !activeSection || window.innerWidth >= 1024) && (
+            <div className="mb-6 lg:block">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Personal Information</h3>
+              
+              {/* Profile Picture Section */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-500 mb-2">
+                  Please upload a clear photo of yourself for identification.
+                </p>
+                <div className="max-w-md mx-auto">
+                  <CloudinaryDocumentUpload
+                    id="profilePicture"
+                    label="Profile Picture"
+                    helpText="A recent photo of yourself"
+                    value={formData.profilePictureUrl}
+                    folder="profile_pictures"
+                    onChange={(url) => setFormData(prev => ({ ...prev, profilePictureUrl: url }))}
+                    isProfilePicture={true}
+                  />
                 </div>
-                <p className="mt-2 text-sm text-gray-600">{formData.firstName} {formData.lastName}</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <Label htmlFor="firstName">
+                    First Name *
+                  </Label>
+                  <Input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
+                    placeholder="Your first name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" >
+                    Last Name *
+                  </Label>
+                  <Input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    required
+                    placeholder="Your last name"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="licenseNumber" >
+                    License Number *
+                  </Label>
+                  <div>
+                    <Input
+                      type="text"
+                      id="licenseNumber"
+                      name="licenseNumber"
+                      value={formData.licenseNumber}
+                      onChange={handleChange}
+                      required
+                      className={`block w-full rounded-md shadow-sm focus:ring-primary sm:text-sm ${
+                        licenseError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary'
+                      }`}
+                      placeholder="Your driver's license number"
+                    />
+                    {isCheckingLicense && (
+                      <p className="mt-1 text-sm text-blue-500">
+                        <span className="inline-block mr-2 animate-spin">⟳</span>
+                        Verifying license number...
+                      </p>
+                    )}
+                    {licenseError && (
+                      <p className="mt-1 text-sm text-red-600">{licenseError}</p>
+                    )}
+                    <p className="mt-1 text-sm text-gray-500">
+                      This is required for booking bikes and will be verified during pickup
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
           
-          {/* Profile Picture Section */}
-          <div className="mb-6">
-  <h3 className="text-lg font-medium text-gray-900 mb-3">Profile Picture</h3>
-  <p className="text-sm text-gray-500 mb-4">
-    Please upload a clear photo of yourself. This will be used for identification.
-  </p>
-  <div className="max-w-md mx-auto">
-    <CloudinaryDocumentUpload
-      id="profilePicture"
-      label="Profile Picture"
-      helpText="A recent photo of yourself"
-      value={formData.profilePictureUrl}
-      folder="profile_pictures"
-      onChange={(url) => setFormData(prev => ({ ...prev, profilePictureUrl: url }))}
-      isProfilePicture={true} // Add this prop to identify it as a profile picture
-    />
-  </div>
-</div>
-          
-          {/* Personal Information Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <Label htmlFor="firstName">
-                First Name *
-              </Label>
-              <Input
-                type="text"
-                id="firstName"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                required
-                placeholder="Your first name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="lastName" >
-                Last Name *
-              </Label>
-              <Input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-                placeholder="Your last name"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Label htmlFor="licenseNumber" >
-                License Number *
-              </Label>
-              <div>
-                <Input
-                  type="text"
-                  id="licenseNumber"
-                  name="licenseNumber"
-                  value={formData.licenseNumber}
-                  onChange={handleChange}
-                  required
-                  className={`block w-full rounded-md shadow-sm focus:ring-primary sm:text-sm ${
-                    licenseError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-primary'
-                  }`}
-                  placeholder="Your driver's license number"
+          {/* Identity Documents Section - visible based on activeSection */}
+          {(activeSection === "documents" || !activeSection || window.innerWidth >= 1024) && (
+            <div className="mb-6 lg:block">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">Identity Documents</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Please upload clear photos of your license and both sides of your Aadhar card.
+              </p>
+              
+              {/* License */}
+              <div className="mb-6">
+                <div className="flex items-center mb-2">
+                  <FileText className="h-4 w-4 mr-2 text-primary" />
+                  <span className="text-sm font-medium">Driver's License</span>
+                </div>
+                <CloudinaryDocumentUpload
+                  id="licenseImage"
+                  label="Driver's License"
+                  helpText="Front side with photo"
+                  value={formData.licenseImageUrl}
+                  folder="license_images"
+                  onChange={(url) => setFormData(prev => ({ ...prev, licenseImageUrl: url }))}
                 />
-                {isCheckingLicense && (
-                  <p className="mt-1 text-sm text-blue-500">
-                    <span className="inline-block mr-2 animate-spin">⟳</span>
-                    Verifying license number...
-                  </p>
-                )}
-                {licenseError && (
-                  <p className="mt-1 text-sm text-red-600">{licenseError}</p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  This is required for booking bikes and will be verified during pickup
-                </p>
               </div>
-            </div>
-          </div>
-          
-          {/* Identity Documents Section */}
-          <div className="mb-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Identity Documents</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Please upload clear photos of your license and both sides of your Aadhar card. These will be verified during pickup.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <CloudinaryDocumentUpload
-                id="licenseImage"
-                label="Driver's License"
-                helpText="Front side with photo"
-                value={formData.licenseImageUrl}
-                folder="license_images"
-                onChange={(url) => setFormData(prev => ({ ...prev, licenseImageUrl: url }))}
-              />
-              <div className="space-y-6">
+              
+              {/* Aadhar Front */}
+              <div className="mb-6">
+                <div className="flex items-center mb-2">
+                  <FileText className="h-4 w-4 mr-2 text-primary" />
+                  <span className="text-sm font-medium">Aadhar Card (Front)</span>
+                </div>
                 <CloudinaryDocumentUpload
                   id="aadharFrontImage"
                   label="Aadhar Card (Front)"
@@ -432,6 +520,14 @@ function ProfileContent() {
                   folder="aadhar_images"
                   onChange={(url) => setFormData(prev => ({ ...prev, aadharImageUrl: url }))}
                 />
+              </div>
+              
+              {/* Aadhar Back */}
+              <div className="mb-6">
+                <div className="flex items-center mb-2">
+                  <FileText className="h-4 w-4 mr-2 text-primary" />
+                  <span className="text-sm font-medium">Aadhar Card (Back)</span>
+                </div>
                 <CloudinaryDocumentUpload
                   id="aadharBackImage"
                   label="Aadhar Card (Back)"
@@ -442,15 +538,28 @@ function ProfileContent() {
                 />
               </div>
             </div>
-          </div>
+          )}
           
-          <div className="mt-8 flex justify-end">
+          <div className="mt-6 flex justify-end">
             <button
               type="submit"
               disabled={isSubmitting || isCheckingLicense || !!licenseError}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Saving..." : profileIsComplete ? "Update Profile" : "Complete Profile"}
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {profileIsComplete ? "Update Profile" : "Complete Profile"}
+                </>
+              )}
             </button>
           </div>
         </form>

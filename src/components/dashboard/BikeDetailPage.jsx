@@ -1,7 +1,8 @@
+// src/components/dashboard/BikeDetailPage.jsx
 "use client";
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../../convex/\_generated/api';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -12,6 +13,7 @@ import TimeLimitedDatePicker from '../ui/TimeLimitedDatePicker';
 import EndTimePicker from '../ui/EndTimePicker';
 import { Label } from '../ui/label';
 import { calculateRentalPrice, getPriceBreakdown } from '@/lib/PricingCalculator';
+import { ChevronDown, Check, X, Clock } from 'lucide-react';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
@@ -27,6 +29,8 @@ export default function BikeDetailPage({ bikeId }) {
   const [isBookingLoading, setIsBookingLoading] = useState(false);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
 
   // Check if user profile is complete - only if user is signed in
   const isProfileComplete = useQuery(
@@ -140,74 +144,95 @@ export default function BikeDetailPage({ bikeId }) {
   const isReallyAvailable = bike.isAvailable && (availabilityInfo?.isAvailable !== false);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="container mx-auto px-4 py-4 sm:py-8">
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="rounded-lg overflow-hidden relative h-56 sm:h-80 mb-4 sm:mb-0"
+      >
+        <Image
+          src={bike.imageUrl || '/placeholder-bike.jpg'}
+          alt={bike.name}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 100vw, 50vw"
+        />
+        {/* Availability tag */}
+        {!bike.isAvailable && (
+          <div className="absolute top-4 left-0 bg-red-600 text-white px-4 py-1 rounded-r-full font-medium">
+            Currently Unavailable
+          </div>
+        )}
+        {/* Booking status tag */}
+        {bike.isAvailable && !isReallyAvailable && (
+          <div className="absolute top-4 left-0 bg-orange-600 text-white px-4 py-1 rounded-r-full font-medium">
+            Booked for Selected Time
+          </div>
+        )}
+      </motion.div>
+
+      <div className="sm:grid sm:grid-cols-1 md:grid-cols-2 gap-8">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="rounded-lg overflow-hidden relative h-80"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          <Image
-            src={bike.imageUrl || '/placeholder-bike.jpg'}
-            alt={bike.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-          {/* Availability tag */}
-          {!bike.isAvailable && (
-            <div className="absolute top-4 left-0 bg-red-600 text-white px-4 py-1 rounded-r-full font-medium">
-              Currently Unavailable
-            </div>
-          )}
-          {/* Booking status tag */}
-          {bike.isAvailable && !isReallyAvailable && (
-            <div className="absolute top-4 left-0 bg-orange-600 text-white px-4 py-1 rounded-r-full font-medium">
-              Booked for Selected Time
-            </div>
-          )}
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-        >
-          <h1 className="text-3xl font-bold text-gray-900">{bike.name}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{bike.name}</h1>
           <div className="flex items-center mt-2 space-x-2">
-            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-sm font-medium text-blue-700">
+            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs sm:text-sm font-medium text-blue-700">
               {bike.type}
             </span>
-            <span className={`inline-flex items-center rounded-md px-2 py-1 text-sm font-medium
+            <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs sm:text-sm font-medium 
               ${isReallyAvailable ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
               {isReallyAvailable ? "Available" : "Unavailable"}
             </span>
           </div>
+          
+          {/* Mobile-optimized collapsible sections */}
           {bike.description !== "" ? (
-            <div className="mt-4">
-              <h2 className="text-xl font-semibold text-gray-900">Description</h2>
-              <p className="mt-2 text-gray-600">{bike.description || "No description available"}</p>
-            </div>
-          ) : null}
-          {bike.features && bike.features.length !== 0 ? (
-            <div className="mt-4">
-              <h2 className="text-xl font-semibold text-gray-900">Features</h2>
-              {bike.features && bike.features.length > 0 ? (
-                <ul className="mt-2 grid grid-cols-2 gap-2">
-                  {bike.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-gray-600">
-                      <svg className="w-4 h-4 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-gray-500">No features available</p>
+            <div className="mt-4 border-t border-b py-3">
+              <button 
+                onClick={() => setShowFeatures(!showFeatures)}
+                className="w-full flex justify-between items-center text-left"
+              >
+                <h2 className="text-lg font-semibold text-gray-900">Description</h2>
+                <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${showFeatures ? 'rotate-180' : ''}`} />
+              </button>
+              {showFeatures && (
+                <p className="mt-2 text-gray-600 text-sm">{bike.description || "No description available"}</p>
               )}
             </div>
           ) : null}
-          <div className="mt-4">
-            <h2 className="text-xl font-semibold text-gray-900">Booking</h2>
+          
+          {bike.features && bike.features.length !== 0 ? (
+            <div className="border-b py-3">
+              <button 
+                onClick={() => setShowFeatures(!showFeatures)}
+                className="w-full flex justify-between items-center text-left"
+              >
+                <h2 className="text-lg font-semibold text-gray-900">Features</h2>
+                <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${showFeatures ? 'rotate-180' : ''}`} />
+              </button>
+              {showFeatures && (
+                <div className="mt-2">
+                  {bike.features && bike.features.length > 0 ? (
+                    <ul className="grid grid-cols-2 gap-2">
+                      {bike.features.map((feature, index) => (
+                        <li key={index} className="flex items-center text-sm text-gray-600">
+                          <Check className="w-4 h-4 mr-2 text-primary" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-gray-500">No features available</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : null}
+          
+          <div className="py-3">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Booking</h2>
             {bike.isAvailable ? (
               <div className="mt-2">
                 {/* Sign in prompt for non-signed in users */}
@@ -243,15 +268,15 @@ export default function BikeDetailPage({ bikeId }) {
                 {/* Booking information box */}
                 <div className="bg-blue-50 p-4 rounded-md mb-4">
                   <h3 className="font-medium text-blue-800">Booking Information</h3>
-                  <p className="text-blue-700 mt-1">
+                  <p className="text-blue-700 mt-1 text-sm">
                     Pay only ₹42 deposit now. Remaining balance will be paid after return.
                   </p>
-                  <p className="text-blue-700 mt-1">
+                  <p className="text-blue-700 mt-1 text-sm">
                     <strong>Note:</strong> You can only book for start times within the next 30 minutes.
                   </p>
                 </div>
 
-                {/* Updated time pickers */}
+                {/* Mobile-optimized time pickers */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <TimeLimitedDatePicker
                     selectedDate={startDate}
@@ -275,12 +300,14 @@ export default function BikeDetailPage({ bikeId }) {
 
                 {/* Availability indicator */}
                 {isCheckingAvailability ? (
-                  <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse">
-                    <p className="text-blue-800">Checking availability...</p>
+                  <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-blue-500 animate-spin" />
+                    <p className="text-blue-800 text-sm">Checking availability...</p>
                   </div>
                 ) : !isReallyAvailable ? (
-                  <div className="bg-red-50 p-3 rounded-md mb-4">
-                    <p className="text-red-800 font-medium">
+                  <div className="bg-red-50 p-3 rounded-md mb-4 flex items-center">
+                    <X className="h-4 w-4 mr-2 text-red-500" />
+                    <p className="text-red-800 font-medium text-sm">
                       {!bike.isAvailable
                         ? "This bike is not available for booking."
                         : availabilityInfo?.reason || "This bike is already booked for the selected time period"
@@ -288,25 +315,32 @@ export default function BikeDetailPage({ bikeId }) {
                     </p>
                   </div>
                 ) : (
-                  <div className="bg-green-50 p-3 rounded-md mb-4">
-                    <p className="text-green-800 font-medium">
+                  <div className="bg-green-50 p-3 rounded-md mb-4 flex items-center">
+                    <Check className="h-4 w-4 mr-2 text-green-500" />
+                    <p className="text-green-800 font-medium text-sm">
                       This bike is available for booking during the selected time period!
                     </p>
                   </div>
                 )}
 
-                {/* Updated price breakdown with detailed pricing */}
-                <div className="bg-gray-50 p-4 rounded-md mb-4">
-                  {startDate && endDate && bike ? (
-                    <>
+                {/* Price breakdown with toggle for mobile */}
+                <div className="border-t border-gray-200 pt-4 mb-4">
+                  <button 
+                    onClick={() => setShowPricing(!showPricing)}
+                    className="w-full flex justify-between items-center text-left mb-2"
+                  >
+                    <h3 className="font-medium text-gray-800">Price Breakdown</h3>
+                    <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${showPricing ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showPricing && startDate && endDate && bike ? (
+                    <div className="bg-gray-50 p-4 rounded-md">
                       {(() => {
                         const priceInfo = calculateRentalPrice(startDate, endDate, bike.pricePerHour);
                         const breakdown = getPriceBreakdown(startDate, endDate, bike.pricePerHour);
                         
                         return (
                           <>
-                            <h3 className="font-medium text-gray-800 mb-2">Price Breakdown</h3>
-                            
                             {/* Duration information */}
                             <div className="flex justify-between text-sm mb-1">
                               <span className="text-gray-600">Duration:</span>
@@ -346,18 +380,21 @@ export default function BikeDetailPage({ bikeId }) {
                           </>
                         );
                       })()}
-                    </>
+                    </div>
                   ) : (
-                    <p className="text-gray-500 text-center py-2">
-                      Select start and end times to see price details
-                    </p>
+                    !showPricing && (
+                      <div className="flex justify-between text-sm mb-3 px-1">
+                        <span className="text-gray-600">Deposit:</span>
+                        <span className="font-bold">₹42</span>
+                      </div>
+                    )
                   )}
                 </div>
 
                 <button
                   onClick={handleOpenTermsModal}
                   disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid() || (isSignedIn && isProfileComplete === false) || !isSignedIn}
-                  className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
+                  className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
                     ${isReallyAvailable && isStartTimeValid() && (isSignedIn ? isProfileComplete !== false : false)
                       ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
                       : 'bg-gray-400 cursor-not-allowed'}`}
@@ -396,35 +433,25 @@ export default function BikeDetailPage({ bikeId }) {
 function BikeDetailSkeleton() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="rounded-lg overflow-hidden bg-gray-200 animate-pulse h-80"></div>
-        <div>
-          <div className="h-8 bg-gray-200 rounded animate-pulse mb-4 w-3/4"></div>
-          <div className="flex space-x-2 mb-4">
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
-          </div>
-          <div className="mb-4">
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-          </div>
-          <div className="mb-4">
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
-            <div className="grid grid-cols-2 gap-2">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-4 bg-gray-200 rounded animate-pulse"></div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-4"></div>
-            <div className="h-10 bg-gray-200 rounded animate-pulse mb-2"></div>
-            <div className="h-10 bg-gray-200 rounded animate-pulse mb-4"></div>
-            <div className="h-24 bg-gray-200 rounded animate-pulse mb-4"></div>
-            <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-          </div>
+      <div className="mb-8 rounded-lg overflow-hidden bg-gray-200 animate-pulse h-56 sm:h-80"></div>
+      <div>
+        <div className="h-8 bg-gray-200 rounded animate-pulse mb-4 w-3/4"></div>
+        <div className="flex space-x-2 mb-4">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+        </div>
+        <div className="mb-4">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+        </div>
+        <div className="mb-4">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4 mb-2"></div>
+          <div className="h-10 bg-gray-200 rounded animate-pulse mb-2"></div>
+          <div className="h-10 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <div className="h-24 bg-gray-200 rounded animate-pulse mb-4"></div>
+          <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
         </div>
       </div>
     </div>
