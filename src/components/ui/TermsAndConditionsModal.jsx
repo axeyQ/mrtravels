@@ -2,144 +2,219 @@
 "use client";
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { X, AlertTriangle, Check } from 'lucide-react';
 
 export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
   const [accepted, setAccepted] = useState(false);
 
   if (!isOpen) return null;
+  
+  // Handle scroll to sections for mobile
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-      <motion.div 
+    <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white rounded-lg max-w-2xl w-full p-6 max-h-[90vh] flex flex-col"
+        className="bg-white rounded-lg max-w-2xl w-full flex flex-col max-h-[90vh]"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Terms and Conditions</h2>
+        <div className="p-4 sm:p-6 border-b flex justify-between items-center sticky top-0 bg-white rounded-t-lg z-10">
+          <h2 className="text-xl font-bold text-gray-900">Terms and Conditions</h2>
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
         
-        <div className="overflow-y-auto flex-grow mb-6 pr-2">
-          <div className="prose prose-sm max-w-none">
-            <h3 className='underline font-semibold'>1. Rental Agreement</h3>
-            <p>
-              This Rental Agreement constitutes a contract between <strong>you (the &quot;Renter&quot;)</strong> and <strong>M.R Travels and Rental Services (the &quot;Company&quot;)</strong>, 
-              governing the rental of vehicles through our platform.
-            </p>
-            
-            <h3 className='mt-2 underline font-semibold'>2. Eligibility</h3>
-            <p>
-              To rent a vehicle, you must:
-            </p>
-            <ul>
-              <li>a. Be at least <strong>18 years of age</strong></li>
-              <li>b. Possess a <strong>valid driver&quot;s license</strong></li>
-              <li>c. Provide <strong>accurate personal information</strong></li>
-            </ul>
-            
-            <h3 className='mt-2 underline font-semibold'>3. Vehicle Use</h3>
-            <p>
-              <strong>i. The Renter agrees to:</strong>
-            </p>
-            <ul>
-              <li>a. Use the vehicle <strong>only for personal transportation</strong></li>
-              <li>b. Not use the vehicle for <strong>any illegal activities</strong></li>
-              <li>c. Not exceed passenger or weight limitations i.e <strong>only two people per vehicle</strong></li>
-              <li>d. Not <strong>modify or alter</strong> the vehicle in any way</li>
-              <li>e. Return the vehicle in the <strong>same condition as received</strong></li>
-            </ul>
-            
-            <h3 className='mt-2 underline font-semibold'>4. Payment Terms</h3>
-            <p>
-              <strong>i. The Renter understands and agrees:</strong>
-            </p>
-            <ul>
-              <li>a. To pay the <strong>deposit amount</strong> at the time of booking</li>
-              <li>b. To pay the <strong>remaining balance</strong> upon return of the vehicle</li>
-              <li>c. To be <strong>responsible for any additional charges</strong> due to damages</li>
-              <li>d. That cancellation fees may apply as per our cancellation policy</li>
-            </ul>
-            
-            <h3 className='mt-2 underline font-semibold'>5. Insurance and Liability</h3>
-            <p>
-              <strong>i. The Renter acknowledges:</strong>
-            </p>
-            <ul>
-              <li>a. They are <strong>responsible for any damage</strong> to the vehicle during the rental period</li>
-              <li>b. <strong>Basic insurance</strong> is included in the rental price</li>
-              <li>c. The Renter is responsible for any <strong>deductible amounts</strong></li>
-              <li>d. <strong>Personal property</strong> in the vehicle is not covered by our insurance</li>
-            </ul>
-            
-            <h3 className='mt-2 underline font-semibold'>6. Cancellation Policy</h3>
-            <p>
-              <strong>i. Cancellations made:</strong>
-            </p>
-            <ul>
-              <li>a. Till pickup time: <strong>Full refund of deposit</strong></li>
-              <li>b. Failure to pick up: <strong>No refund of deposit and full payment for an hour to be paid i.e Rs.80</strong></li>
-            </ul>
-            
-            <h3 className='mt-2 underline font-semibold'>7. Privacy Policy</h3>
-            <p>
-              The Company collects and processes personal data in accordance with our <strong>Privacy Policy</strong>, 
-              which the <strong>Renter acknowledges having read and understood</strong>.
-            </p>
-            
-            <h3 className='mt-2 underline font-semibold'>8. Dispute Resolution</h3>
-            <p>
-              Any disputes arising from this agreement shall be resolved through arbitration 
-              in accordance with the <strong>laws of the jurisdiction where the Company is registered</strong>.
-            </p>
-            
-            <h3 className='mt-2 underline font-semibold'>9. Term and Termination</h3>
-            <p>
-              This agreement is effective upon booking and ends upon the return of the vehicle, 
-              provided all payments have been made and no damages are found.
-            </p>
+        {/* Quick navigation for mobile */}
+        <div className="lg:hidden px-4 py-2 overflow-x-auto whitespace-nowrap border-b">
+          <div className="inline-flex space-x-2">
+            <button 
+              onClick={() => scrollToSection('section-1')}
+              className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              Rental Agreement
+            </button>
+            <button 
+              onClick={() => scrollToSection('section-2')}
+              className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              Eligibility
+            </button>
+            <button 
+              onClick={() => scrollToSection('section-3')}
+              className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              Vehicle Use
+            </button>
+            <button 
+              onClick={() => scrollToSection('section-4')}
+              className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              Payment
+            </button>
+            <button 
+              onClick={() => scrollToSection('section-5')}
+              className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full"
+            >
+              Cancellation
+            </button>
           </div>
         </div>
         
-        <div className="border-t pt-4">
-          <div className="flex items-start mb-4">
-            <div className="flex items-center h-5">
-              <input
-                id="terms"
-                type="checkbox"
-                checked={accepted}
-                onChange={(e) => setAccepted(e.target.checked)}
-                className="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded"
-              />
-            </div>
-            <div className="ml-3 text-sm">
-              <label htmlFor="terms" className="font-medium text-gray-700">
+        <div className="overflow-y-auto flex-grow px-4 sm:px-6 py-4">
+          <div className="prose prose-sm max-w-none">
+            <section id="section-1">
+              <h3>1. Rental Agreement</h3>
+              <p>
+                This Rental Agreement constitutes a contract between you (the "Renter") and BikeFlix (the "Company"),
+                governing the rental of vehicles through our platform.
+              </p>
+            </section>
+            
+            <section id="section-2">
+              <h3>2. Eligibility</h3>
+              <p>
+                To rent a vehicle, you must:
+              </p>
+              <ul>
+                <li>Be at least 18 years of age</li>
+                <li>Possess a valid driver's license</li>
+                <li>Provide accurate personal information</li>
+                <li>Have a valid payment method</li>
+              </ul>
+            </section>
+            
+            <section id="section-3">
+              <h3>3. Vehicle Use</h3>
+              <p>
+                The Renter agrees to:
+              </p>
+              <ul>
+                <li>Use the vehicle only for personal transportation</li>
+                <li>Not use the vehicle for any illegal activities</li>
+                <li>Not exceed passenger or weight limitations</li>
+                <li>Not modify or alter the vehicle in any way</li>
+                <li>Return the vehicle in the same condition as received</li>
+              </ul>
+            </section>
+            
+            <section id="section-4">
+              <h3>4. Payment Terms</h3>
+              <p>
+                The Renter understands and agrees:
+              </p>
+              <ul>
+                <li>To pay the deposit amount at the time of booking</li>
+                <li>To pay the remaining balance upon return of the vehicle</li>
+                <li>To be responsible for any additional charges due to late returns or damages</li>
+                <li>That cancellation fees may apply as per our cancellation policy</li>
+              </ul>
+            </section>
+            
+            <section id="section-5">
+              <h3>5. Insurance and Liability</h3>
+              <p>
+                The Renter acknowledges:
+              </p>
+              <ul>
+                <li>They are responsible for any damage to the vehicle during the rental period</li>
+                <li>Basic insurance is included in the rental price</li>
+                <li>The Renter is responsible for any deductible amounts</li>
+                <li>Personal property in the vehicle is not covered by our insurance</li>
+              </ul>
+            </section>
+            
+            <section id="section-6">
+              <h3>6. Cancellation Policy</h3>
+              <p>
+                Cancellations made:
+              </p>
+              <ul>
+                <li>More than 24 hours before pickup: Full refund</li>
+                <li>Less than 24 hours before pickup: No refund of deposit</li>
+                <li>Failure to pick up: No refund</li>
+              </ul>
+            </section>
+            
+            <section id="section-7">
+              <h3>7. Privacy Policy</h3>
+              <p>
+                The Company collects and processes personal data in accordance with our Privacy Policy,
+                which the Renter acknowledges having read and understood.
+              </p>
+            </section>
+            
+            <section id="section-8">
+              <h3>8. Dispute Resolution</h3>
+              <p>
+                Any disputes arising from this agreement shall be resolved through arbitration
+                in accordance with the laws of the jurisdiction where the Company is registered.
+              </p>
+            </section>
+            
+            <section id="section-9">
+              <h3>9. Term and Termination</h3>
+              <p>
+                This agreement is effective upon booking and ends upon the return of the vehicle,
+                provided all payments have been made and no damages are found.
+              </p>
+            </section>
+          </div>
+        </div>
+        
+        <div className="border-t p-4 sm:p-6 sticky bottom-0 bg-white rounded-b-lg z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center">
+            <div className="flex items-start mb-4 sm:mb-0 sm:flex-1">
+              <div className="flex-shrink-0">
+                <input
+                  id="terms"
+                  name="terms"
+                  type="checkbox"
+                  checked={accepted}
+                  onChange={(e) => setAccepted(e.target.checked)}
+                  className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                />
+              </div>
+              <label htmlFor="terms" className="ml-3 text-sm text-gray-700">
                 I have read and agree to the terms and conditions
               </label>
             </div>
-          </div>
-          
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (accepted) {
-                  onAccept();
-                }
-              }}
-              disabled={!accepted}
-              className={`py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                accepted 
-                  ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary' 
-                  : 'bg-gray-400 cursor-not-allowed'
-              }`}
-            >
-              Accept & Continue
-            </button>
+            
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (accepted) {
+                    onAccept();
+                  }
+                }}
+                disabled={!accepted}
+                className={`w-full sm:w-auto inline-flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                  accepted
+                    ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {accepted ? <Check className="mr-1.5 h-4 w-4" /> : <AlertTriangle className="mr-1.5 h-4 w-4" />}
+                Accept & Continue
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>

@@ -185,7 +185,7 @@ export default function BookingsPage() {
               <div className="inline-flex rounded-full bg-gray-100 p-3 mb-3">
                 <Calendar className="h-6 w-6 text-gray-500" />
               </div>
-              <p className="text-gray-600 font-medium">You don't have any active bookings</p>
+              <p className="text-gray-600 font-medium">You don&apos;t have any active bookings</p>
               <Link 
                 href="/bikes"
                 className="mt-4 inline-block text-sm text-primary font-medium">

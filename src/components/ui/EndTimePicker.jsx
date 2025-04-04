@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Label } from '../ui/label';
 import { calculateDuration } from '@/lib/PricingCalculator';
+import { Clock, Calendar } from 'lucide-react';
 
 export default function EndTimePicker({
   selectedDate,
@@ -13,6 +14,7 @@ export default function EndTimePicker({
   error = null
 }) {
   const [availableTimes, setAvailableTimes] = useState([]);
+  const [showTimes, setShowTimes] = useState(false);
   
   // Update available times when start time changes
   useEffect(() => {
@@ -74,56 +76,88 @@ export default function EndTimePicker({
   // Handle time selection
   const handleTimeSelect = (time) => {
     onChange(time);
+    setShowTimes(false);
+  };
+  
+  // Format date as Month Day, Year
+  const formatDate = (date) => {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
   
   return (
-    <div className="w-full">
+    <div className="w-full mb-2">
       <Label className="block text-sm font-medium text-gray-700 mb-1">
         {label}
       </Label>
       
-      <div className="border rounded-md shadow-sm p-2 bg-white">
-        {startTime ? (
-          <>
-            {availableTimes.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-                {availableTimes.map((time, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleTimeSelect(time)}
-                    className={`text-sm py-2 px-2 rounded-md ${
-                      selectedDate && time.getTime() === selectedDate.getTime()
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {formatTime(time)} 
-                    <span className="text-xs block mt-1 opacity-75">
+      {/* Current selection display */}
+      <div 
+        onClick={() => startTime && setShowTimes(!showTimes)}
+        className={`border rounded-md shadow-sm p-3 bg-white flex justify-between items-center ${startTime ? 'cursor-pointer' : 'opacity-75'}`}
+      >
+        <div className="flex items-center">
+          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+          <span>
+            {selectedDate ? (
+              <span>
+                {formatTime(selectedDate)}
+                <span className="text-xs text-gray-500 ml-1">
+                  ({formatDuration(selectedDate)})
+                </span>
+              </span>
+            ) : (
+              startTime ? "Select end time" : "Please select start time first"
+            )}
+          </span>
+        </div>
+        <Calendar className="h-4 w-4 text-gray-400" />
+      </div>
+      
+      {/* Time picker dropdown */}
+      {showTimes && startTime && (
+        <div className="border rounded-md shadow-sm mt-1 bg-white max-h-60 overflow-y-auto">
+          <div className="p-2 border-b bg-gray-50">
+            <p className="text-xs text-gray-500">
+              Booking end time can be no later than 10:00 PM
+            </p>
+          </div>
+          
+          {availableTimes.length > 0 ? (
+            <div className="grid grid-cols-1 p-1">
+              {availableTimes.map((time, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleTimeSelect(time)}
+                  className={`text-left py-2 px-3 my-1 rounded-md ${
+                    selectedDate && time.getTime() === selectedDate.getTime()
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{formatTime(time)}</span>
+                    <span className={`text-xs ${selectedDate && time.getTime() === selectedDate.getTime() ? 'text-white' : 'text-gray-500'}`}>
                       {formatDuration(time)}
                     </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 text-center py-4">
-                No available end times (store closes at 10:00 PM)
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="text-sm text-gray-500 text-center py-4">
-            Please select a start time first
-          </p>
-        )}
-      </div>
+                  </div>
+                  <div className="text-xs mt-1 opacity-75">
+                    {formatDate(time)}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">
+              No available end times (store closes at 10:00 PM)
+            </p>
+          )}
+        </div>
+      )}
       
       {error && (
         <p className="mt-1 text-xs text-red-600">{error}</p>
       )}
-      <p className="mt-1 text-xs text-gray-500">
-        Booking end time can be no later than 10:00 PM
-      </p>
     </div>
   );
 }
