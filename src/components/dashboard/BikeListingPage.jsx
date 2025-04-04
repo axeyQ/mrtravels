@@ -1,30 +1,23 @@
+// Modified src/components/dashboard/BikeListingPage.jsx
 "use client";
 import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import BikeGrid from '@/components/ui/BikeGrid';
-import BikeFilterBar from '@/components/ui/BikeFilterBar';
 import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 
 export default function BikeListingPage() {
   const [filters, setFilters] = useState({});
   const [selectedTimeRange, setSelectedTimeRange] = useState(null);
+
+  // Fetch bikes based on filters - add isAvailable: true to show only available bikes by default
+  const bikes = useQuery(api.bikes.getFilteredBikes, {
+    ...filters,
+    isAvailable: true
+  }) || [];
   
-  // Fetch bikes based on filters
-  const bikes = useQuery(api.bikes.getFilteredBikes, filters) || [];
   const isLoading = bikes === undefined;
-  
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-  };
-  
-  const handleTimeRangeChange = (timeRange) => {
-    setSelectedTimeRange(timeRange);
-    if (timeRange) {
-      toast.info("Showing availability for selected time period");
-    }
-  };
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -38,15 +31,10 @@ export default function BikeListingPage() {
           Browse our collection and find your perfect ride
         </p>
       </motion.div>
-      
-      <BikeFilterBar 
-        onFilterChange={handleFilterChange} 
-        onTimeRangeChange={handleTimeRangeChange}
-      />
-      
-      <BikeGrid 
-        bikes={bikes} 
-        isLoading={isLoading} 
+
+      <BikeGrid
+        bikes={bikes}
+        isLoading={isLoading}
         selectedTimeRange={selectedTimeRange}
       />
     </div>

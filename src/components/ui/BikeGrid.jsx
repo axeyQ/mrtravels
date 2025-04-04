@@ -1,5 +1,4 @@
-// Fix for src/components/ui/BikeGrid.jsx
-
+// Modified src/components/ui/BikeGrid.jsx
 "use client";
 import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
@@ -10,7 +9,7 @@ import { motion } from 'framer-motion';
 export default function BikeGrid({ bikes, isLoading, selectedTimeRange }) {
   const [startTime, setStartTime] = useState(Date.now());
   const [endTime, setEndTime] = useState(Date.now() + 2 * 60 * 60 * 1000); // Default 2 hours
-  
+
   // Update time range when selection changes
   useEffect(() => {
     if (selectedTimeRange) {
@@ -18,35 +17,37 @@ export default function BikeGrid({ bikes, isLoading, selectedTimeRange }) {
       setEndTime(selectedTimeRange.endTime);
     }
   }, [selectedTimeRange]);
-  
+
   // Get currently booked bikes for the selected time period
   const bookedBikeIds = useQuery(
     api.bookings.getCurrentlyBookedBikes,
     { startTime, endTime }
   ) || [];
-  
+
   // Create a set of booked bike IDs for faster lookup
   const bookedBikesSet = new Set(bookedBikeIds);
-  
-  // Process bikes to include availability information
-  const processedBikes = bikes.map(bike => {
-    // A bike is only available if:
-    // 1. It's marked as available by admin (bike.isAvailable = true)
-    // 2. It's not booked for the selected time period (not in bookedBikesSet)
-    const isReallyAvailable = bike.isAvailable && !bookedBikesSet.has(bike._id);
-    
-    return {
-      ...bike,
-      isBooked: bookedBikesSet.has(bike._id),
-      isReallyAvailable: isReallyAvailable
-    };
-  });
-  
+
+  // Process bikes to include availability information and filter out unavailable ones
+  const availableBikes = bikes
+    .map(bike => {
+      // A bike is only available if:
+      // 1. It's marked as available by admin (bike.isAvailable = true)
+      // 2. It's not booked for the selected time period (not in bookedBikesSet)
+      const isReallyAvailable = bike.isAvailable && !bookedBikesSet.has(bike._id);
+      return {
+        ...bike,
+        isBooked: bookedBikesSet.has(bike._id),
+        isReallyAvailable
+      };
+    })
+    // Filter out unavailable bikes
+    .filter(bike => bike.isReallyAvailable);
+
   if (isLoading) {
     return <BikesGridSkeleton />;
   }
-  
-  if (bikes.length === 0) {
+
+  if (availableBikes.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -54,20 +55,25 @@ export default function BikeGrid({ bikes, isLoading, selectedTimeRange }) {
         className="text-center py-10"
       >
         <h3 className="text-lg font-medium text-gray-900">No bikes available</h3>
-        <p className="mt-1 text-sm text-gray-500">Try adjusting your filters or check back later.</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Try adjusting your filters or check back later.
+        </p>
       </motion.div>
     );
   }
-  
+
   return (
     <div className="space-y-4">
       {selectedTimeRange && (
         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800 mb-4">
-          <p>Showing availability for: {new Date(startTime).toLocaleString()} to {new Date(endTime).toLocaleString()}</p>
+          <p>
+            Showing availability for: {new Date(startTime).toLocaleString()} to{' '}
+            {new Date(endTime).toLocaleString()}
+          </p>
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {processedBikes.map((bike) => (
+        {availableBikes.map((bike) => (
           <BikeCard
             key={bike._id}
             bike={bike}
