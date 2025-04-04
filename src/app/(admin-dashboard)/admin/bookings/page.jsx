@@ -2,21 +2,25 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { BiCheck, BiX, BiCalendar, BiMoney, BiUser } from "react-icons/bi";
 import Link from "next/link";
 import Image from "next/image";
 import CustomerProfileModal from "@/components/admin/CustomerProfileModal";
 import AdminCustomBookingModal from "@/components/admin/AdminCustomBookingModal";
+import AdminBookingActions from "@/components/admin/AdminBookingActions"; // Import the AdminBookingActions component
 
 export default function AdminBookings() {
   const { user, isLoaded: isUserLoaded } = useUser();
-  
-  // Fetch all bookings
+  // State for refreshing booking data
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch all bookings with refresh capability
   const bookings = useQuery(
     api.bookings.getAllBookings,
-    isUserLoaded && user ? { adminId: user.id } : null
+    isUserLoaded && user ? { adminId: user.id } : null,
+    { refreshTrigger }
   ) || [];
   
   // Fetch all bikes to get their names
@@ -36,11 +40,12 @@ export default function AdminBookings() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [showCustomBookingModal, setShowCustomBookingModal] = useState(false);
+  
   const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
   const completePayment = useMutation(api.bookings.completePayment);
   
   // Create a map of bike IDs to bike objects
-  const bikeMap = bikes.reduce((map, bike) => {
+  const bikesMap = bikes.reduce((map, bike) => {
     map[bike._id] = bike;
     return map;
   }, {});
@@ -50,7 +55,7 @@ export default function AdminBookings() {
     map[userData.userId] = userData;
     return map;
   }, {});
-
+  
   // Handle updating booking status
   const handleUpdateStatus = async () => {
     if (!isUserLoaded || !user || !selectedBooking || !statusToUpdate) return;
@@ -65,6 +70,8 @@ export default function AdminBookings() {
       toast.success(`Booking ${statusToUpdate} successfully`);
       setSelectedBooking(null);
       setStatusToUpdate("");
+      // Refresh bookings list
+      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error updating booking status:", error);
       toast.error(error.message || "Failed to update booking status");
@@ -85,17 +92,19 @@ export default function AdminBookings() {
       toast.success("Payment completed successfully");
       setShowPaymentModal(false);
       setSelectedBooking(null);
+      // Refresh bookings list
+      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error completing payment:", error);
       toast.error(error.message || "Failed to complete payment");
     }
   };
-
+  
   // Function to show the customer profile modal
   const handleViewCustomerProfile = (userId) => {
     setSelectedCustomerId(userId);
   };
-
+  
   // Status badge component
   const StatusBadge = ({ status }) => {
     let colorClass = "";
@@ -115,6 +124,7 @@ export default function AdminBookings() {
       default:
         colorClass = "bg-gray-100 text-gray-800";
     }
+    
     return (
       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${colorClass}`}>
         {status}
@@ -128,7 +138,6 @@ export default function AdminBookings() {
     
     let colorClass = "";
     let label = paymentStatus;
-    
     switch (paymentStatus) {
       case 'pending':
         colorClass = "bg-yellow-100 text-yellow-800";
@@ -152,7 +161,7 @@ export default function AdminBookings() {
       </span>
     );
   };
-
+  
   if (isLoading) {
     return (
       <div className="animate-pulse">
@@ -179,41 +188,33 @@ export default function AdminBookings() {
       </div>
     );
   }
-
+  
   // Sort bookings by start time (newest first)
   const sortedBookings = [...bookings].sort((a, b) => b.startTime - a.startTime);
-
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-  <h1 className="text-2xl font-bold">Manage Bookings</h1>
-  <button
-    onClick={() => setShowCustomBookingModal(true)}
-    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600"
-  >
-    <svg 
-      className="mr-2 h-5 w-5" 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor"
-    >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        strokeWidth={2} 
-        d="M12 4v16m8-8H4" 
-      />
-    </svg>
-    Create Custom Booking
-  </button>
-</div>
-
-{showCustomBookingModal && (
-  <AdminCustomBookingModal
-    onClose={() => setShowCustomBookingModal(false)}
-    adminId={user.id}
-  />
-)}
+        <h1 className="text-2xl font-bold">Manage Bookings</h1>
+        <button
+          onClick={() => setShowCustomBookingModal(true)}
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600"
+        >
+          <svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Create Custom Booking
+        </button>
+      </div>
+      
+      {/* Custom booking modal */}
+      {showCustomBookingModal && (
+        <AdminCustomBookingModal
+          onClose={() => setShowCustomBookingModal(false)}
+          adminId={user.id}
+        />
+      )}
+      
       <div className="bg-white rounded-lg shadow">
         {sortedBookings.length === 0 ? (
           <div className="p-6 text-center">
@@ -246,11 +247,19 @@ export default function AdminBookings() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {sortedBookings.map((booking) => {
-                  const bike = bikeMap[booking.bikeId];
+                  const bike = bikesMap[booking.bikeId];
                   const customerData = userMap[booking.userId] || null;
+                  
+                  // Check if booking is in progress or upcoming
+                  const currentTime = new Date();
+                  const startTime = new Date(booking.startTime);
+                  const endTime = new Date(booking.endTime);
+                  const bookingInProgress = currentTime >= startTime && currentTime < endTime;
+                  const bookingUpcoming = currentTime < startTime;
                   
                   return (
                     <tr key={booking._id}>
+                      {/* Customer information */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10 relative rounded-full overflow-hidden bg-gray-200">
@@ -293,6 +302,8 @@ export default function AdminBookings() {
                           </div>
                         </div>
                       </td>
+                      
+                      {/* Bike information */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {bike && (
@@ -314,6 +325,8 @@ export default function AdminBookings() {
                           )}
                         </div>
                       </td>
+                      
+                      {/* Booking period */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {new Date(booking.startTime).toLocaleDateString()}
@@ -321,7 +334,21 @@ export default function AdminBookings() {
                         <div className="text-sm text-gray-500">
                           {new Date(booking.startTime).toLocaleTimeString()} - {new Date(booking.endTime).toLocaleTimeString()}
                         </div>
+                        
+                        {/* Show early return or extension info */}
+                        {booking.earlyReturn && (
+                          <div className="text-sm text-green-600">
+                            Returned Early: {new Date(booking.actualEndTime).toLocaleTimeString()}
+                          </div>
+                        )}
+                        {booking.extended && (
+                          <div className="text-sm text-blue-600">
+                            Extended: +{booking.extensionHours} hours
+                          </div>
+                        )}
                       </td>
+                      
+                      {/* Payment info */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">₹{booking.totalPrice}</div>
                         {booking.depositAmount && (
@@ -332,76 +359,114 @@ export default function AdminBookings() {
                             )}
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex">
-                          <StatusBadge status={booking.status} />
-                          <PaymentStatusBadge paymentStatus={booking.paymentStatus} />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {/* Different action buttons based on booking state */}
-                        {booking.status === "pending" && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setStatusToUpdate("confirmed");
-                              }}
-                              className="text-green-600 hover:text-green-800"
-                              title="Confirm booking"
-                            >
-                              <BiCheck className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setStatusToUpdate("cancelled");
-                              }}
-                              className="text-red-600 hover:text-red-800"
-                              title="Cancel booking"
-                            >
-                              <BiX className="h-5 w-5" />
-                            </button>
+                        
+                        {/* Show refund amount if applicable */}
+                        {booking.refundAmount > 0 && (
+                          <div className="text-xs text-green-600 font-medium">
+                            Refund: ₹{booking.refundAmount}
                           </div>
                         )}
-                        {booking.status === "confirmed" && (
-                          <div className="flex space-x-2">
-                            {/* For confirmed bookings with deposit paid, show collect remaining payment option */}
-                            {booking.paymentStatus === "deposit_paid" && (
+                      </td>
+                      
+                      {/* Status badges */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex">
+                          {/* Main status */}
+                          <StatusBadge status={booking.status} />
+                          
+                          {/* Payment status */}
+                          <PaymentStatusBadge paymentStatus={booking.paymentStatus} />
+                        </div>
+                        
+                        {/* Time-based status */}
+                        <div className="mt-1">
+                          {bookingInProgress && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              In Progress
+                            </span>
+                          )}
+                          {bookingUpcoming && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                              Upcoming
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      
+                      {/* Actions */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex flex-wrap gap-2">
+                          {/* Different action buttons based on booking state */}
+                          {booking.status === "pending" && (
+                            <>
                               <button
                                 onClick={() => {
                                   setSelectedBooking(booking);
-                                  setShowPaymentModal(true);
+                                  setStatusToUpdate("confirmed");
+                                }}
+                                className="text-green-600 hover:text-green-800"
+                                title="Confirm booking"
+                              >
+                                <BiCheck className="h-5 w-5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setStatusToUpdate("cancelled");
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                                title="Cancel booking"
+                              >
+                                <BiX className="h-5 w-5" />
+                              </button>
+                            </>
+                          )}
+                          
+                          {booking.status === "confirmed" && (
+                            <>
+                              {/* For confirmed bookings with deposit paid, show collect remaining payment option */}
+                              {booking.paymentStatus === "deposit_paid" && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedBooking(booking);
+                                    setShowPaymentModal(true);
+                                  }}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Collect payment"
+                                >
+                                  <BiMoney className="h-5 w-5" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setStatusToUpdate("completed");
                                 }}
                                 className="text-blue-600 hover:text-blue-800"
-                                title="Collect payment"
+                                title="Mark as completed"
                               >
-                                <BiMoney className="h-5 w-5" />
+                                <BiCheck className="h-5 w-5" />
                               </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setStatusToUpdate("completed");
-                              }}
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Mark as completed"
-                            >
-                              <BiCheck className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedBooking(booking);
-                                setStatusToUpdate("cancelled");
-                              }}
-                              className="text-red-600 hover:text-red-800"
-                              title="Cancel booking"
-                            >
-                              <BiX className="h-5 w-5" />
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setStatusToUpdate("cancelled");
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                                title="Cancel booking"
+                              >
+                                <BiX className="h-5 w-5" />
+                              </button>
+                              
+                              {/* Add the AdminBookingActions component for extension and early return */}
+                              <AdminBookingActions 
+                                booking={booking} 
+                                bike={bikesMap[booking.bikeId]}
+                                onActionComplete={() => setRefreshTrigger(prev => prev + 1)} 
+                              />
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -411,7 +476,7 @@ export default function AdminBookings() {
           </div>
         )}
       </div>
-
+      
       {/* Status Update Confirmation Modal */}
       {selectedBooking && statusToUpdate && !showPaymentModal && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
@@ -446,7 +511,7 @@ export default function AdminBookings() {
           </div>
         </div>
       )}
-
+      
       {/* Payment Collection Modal */}
       {showPaymentModal && selectedBooking && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
@@ -535,12 +600,12 @@ export default function AdminBookings() {
           </div>
         </div>
       )}
-
+      
       {/* Customer Profile Modal */}
       {selectedCustomerId && (
-        <CustomerProfileModal 
-          userId={selectedCustomerId} 
-          onClose={() => setSelectedCustomerId(null)} 
+        <CustomerProfileModal
+          userId={selectedCustomerId}
+          onClose={() => setSelectedCustomerId(null)}
         />
       )}
     </div>

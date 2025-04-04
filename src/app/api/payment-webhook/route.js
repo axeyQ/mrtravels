@@ -1,47 +1,49 @@
-// Create this file at: app/api/payment-webhook/route.js
-
+// src/app/api/payment-webhook/route.js
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { cashfreeConfig, verifyWebhookSignature } from '@/lib/cashfree';
 
 export async function POST(request) {
   try {
-    // Get the raw request body
+    // Get the raw request body and headers
     const body = await request.json();
+    const signature = request.headers.get('x-webhook-signature');
     
-    // Verify PhonePe webhook signature
-    const signature = request.headers.get('X-VERIFY');
+    // Verify Cashfree webhook signature
     if (!signature) {
-      console.error('Missing X-VERIFY signature in webhook');
+      console.error('Missing x-webhook-signature in webhook');
       return NextResponse.json({ status: 'ERROR', message: 'Missing signature' }, { status: 400 });
     }
     
-    // PhonePe API configuration
-    const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-    const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
+    // Verify the webhook signature
+    const isValid = verifyWebhookSignature(body, signature, cashfreeConfig.secretKey);
+    if (!isValid) {
+      console.error('Invalid webhook signature');
+      return NextResponse.json({ status: 'ERROR', message: 'Invalid signature' }, { status: 400 });
+    }
     
-    // Extract transaction details
-    const { merchantId, merchantTransactionId, amount, paymentState } = body;
+    // Extract order details
+    const { orderId, orderAmount, orderStatus, referenceId } = body.data || {};
     
     // Validate that required fields are present
-    if (!merchantTransactionId) {
+    if (!orderId) {
       console.error('Missing required fields in webhook payload');
       return NextResponse.json({ status: 'ERROR', message: 'Invalid payload' }, { status: 400 });
     }
     
-    // Parse the transaction ID to extract bookingId
+    // Parse the order ID to extract bookingId
     // Format is BIKEFLIX_bookingId_timestamp
-    const bookingIdMatch = merchantTransactionId.match(/BIKEFLIX_([^_]+)_/);
+    const bookingIdMatch = orderId.match(/BIKEFLIX_([^_]+)_/);
     const bookingId = bookingIdMatch ? bookingIdMatch[1] : null;
     
     if (!bookingId) {
-      console.error(`Cannot extract bookingId from transaction: ${merchantTransactionId}`);
-      return NextResponse.json({ status: 'ERROR', message: 'Invalid transaction ID format' }, { status: 400 });
+      console.error(`Cannot extract bookingId from order ID: ${orderId}`);
+      return NextResponse.json({ status: 'ERROR', message: 'Invalid order ID format' }, { status: 400 });
     }
     
-    console.log(`Webhook received for booking ${bookingId}, transaction ${merchantTransactionId}, state: ${paymentState}`);
+    console.log(`Webhook received for booking ${bookingId}, order ${orderId}, state: ${orderStatus}`);
     
     // Check if payment was successful
-    const isSuccessful = paymentState === 'COMPLETED';
+    const isSuccessful = orderStatus === 'PAID';
     
     // Update booking status in your database
     try {
@@ -54,8 +56,8 @@ export async function POST(request) {
         body: JSON.stringify({
           bookingId,
           success: isSuccessful,
-          transactionId: merchantTransactionId,
-          amount: amount / 100 // Convert from paise to rupees
+          transactionId: referenceId || orderId,
+          amount: parseFloat(orderAmount) || 42
         })
       });
       
@@ -68,10 +70,10 @@ export async function POST(request) {
       console.error(`Error updating booking ${bookingId} payment status:`, error);
     }
     
-    // Return success to PhonePe
+    // Return success to Cashfree
     return NextResponse.json({ status: 'OK' });
   } catch (error) {
-    console.error('Error processing PhonePe webhook:', error);
+    console.error('Error processing Cashfree webhook:', error);
     return NextResponse.json({ status: 'ERROR', message: 'Internal server error' }, { status: 500 });
   }
 }

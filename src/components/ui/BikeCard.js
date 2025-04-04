@@ -36,15 +36,19 @@ export default function BikeCard({ bike, isBooked = false, isReallyAvailable = t
         )}
       </div>
       <div className="p-4">
+      <div className='flex justify-between items-center mb-2'>
         <h3 className="text-lg font-semibold text-gray-900 mb-1">{bike.name}</h3>
         <div className="flex items-center mb-2">
           <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
             {bike.type}
           </span>
         </div>
+        </div>
+        {!bike.description ||
         <p className="text-gray-600 text-sm line-clamp-2 mb-3">
           {bike.description || 'No description available'}
         </p>
+        }
         <div className="flex justify-end">
           <Link
             href={`/bikes/${bike._id}`}

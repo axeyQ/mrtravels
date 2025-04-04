@@ -12,6 +12,7 @@ import Image from 'next/image';
 
 import TermsAndConditionsModal from '@/components/ui/TermsAndConditionsModal';
 import TimeLimitedDatePicker from '../ui/TimeLimitedDatePicker';
+import { Label } from '../ui/label';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
@@ -190,12 +191,14 @@ export default function BikeDetailPage({ bikeId }) {
               {isReallyAvailable ? "Available" : "Unavailable"}
             </span>
           </div>
-          
+          {bike.description !==""?
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Description</h2>
             <p className="mt-2 text-gray-600">{bike.description || "No description available"}</p>
           </div>
-          
+          : null
+          }
+          {bike.features.length !=0 ?
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Features</h2>
             {bike.features && bike.features.length > 0 ? (
@@ -212,8 +215,8 @@ export default function BikeDetailPage({ bikeId }) {
             ) : (
               <p className="mt-2 text-gray-500">No features available</p>
             )}
-          </div>
-          
+          </div> : null
+        }
           <div className="mt-4">
             <h2 className="text-xl font-semibold text-gray-900">Booking</h2>
             {bike.isAvailable ? (
@@ -269,14 +272,14 @@ export default function BikeDetailPage({ bikeId }) {
     error={!isStartTimeValid() ? "Start time must be within the next 30 minutes" : null}
   />
   <div>
-    <label className="block text-sm font-medium text-gray-700">End Time</label>
+    <Label>End Time</Label>
     <DatePicker
       selected={endDate}
       onChange={(date) => setEndDate(date)}
       showTimeSelect
       timeIntervals={30}
       dateFormat="MMMM d, yyyy h:mm aa"
-      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:outline-none focus:ring-primary sm:text-sm"
+      className="shadow-input dark:placeholder-text-neutral-600 h-10 border-none bg-gray-50 px-3 py-2 text-sm text-black transition duration-400 group-hover/input:shadow-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-400 focus-visible:ring-[2px] focus-visible:ring-neutral-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-white dark:shadow-[0px_0px_1px_1px_#404040] dark:focus-visible:ring-neutral-600 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
       minDate={startDate}
     />
   </div>

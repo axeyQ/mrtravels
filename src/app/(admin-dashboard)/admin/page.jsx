@@ -1,14 +1,13 @@
 "use client";
-
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
+import StoreStatusToggle from '@/components/admin/StoreStatusToggle';
 
 export default function AdminDashboard() {
   const { user, isLoaded: isUserLoaded } = useUser();
-  
   const bikes = useQuery(api.bikes.getAllBikes) || [];
   const bookings = useQuery(
     api.bookings.getAllBookings,
@@ -18,14 +17,12 @@ export default function AdminDashboard() {
     api.users.listUsers,
     isUserLoaded && user ? { adminId: user.id } : null
   ) || [];
-
-  
   const isLoading = bikes === undefined || bookings === undefined || users === undefined;
-  
+
   if (isLoading) {
     return <div>Loading dashboard data...</div>;
   }
-  
+
   const stats = {
     totalBikes: bikes.length,
     availableBikes: bikes.filter(b => b.isAvailable).length,
@@ -36,10 +33,15 @@ export default function AdminDashboard() {
     completedBookings: bookings.filter(b => b.status === "completed").length,
     cancelledBookings: bookings.filter(b => b.status === "cancelled").length,
   };
-  
+
   return (
     <div>
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+      
+      {/* Store Status Toggle */}
+      <div className="mb-6">
+        <StoreStatusToggle />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow p-6">
@@ -60,7 +62,6 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </div>
-        
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-2">Users</h2>
           <div className="flex justify-between">
@@ -79,7 +80,6 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </div>
-        
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-2">Bookings</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -106,12 +106,12 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </div>
-        
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-2">Revenue</h2>
           <div>
             <p className="text-3xl font-bold">
-              ₹{bookings
+              ₹
+              {bookings
                 .filter(b => b.status === "completed")
                 .reduce((sum, booking) => sum + booking.totalPrice, 0)
                 .toFixed(2)}
@@ -120,7 +120,8 @@ export default function AdminDashboard() {
           </div>
           <div className="mt-2">
             <p className="text-xl font-bold text-green-600">
-              ₹{bookings
+              ₹
+              {bookings
                 .filter(b => b.status === "confirmed")
                 .reduce((sum, booking) => sum + booking.totalPrice, 0)
                 .toFixed(2)}
@@ -129,7 +130,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Recent Bookings</h2>
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ₹{
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                       booking.status === "pending" ? "bg-yellow-100 text-yellow-800" :
                       booking.status === "confirmed" ? "bg-blue-100 text-blue-800" :
                       booking.status === "completed" ? "bg-green-100 text-green-800" :
@@ -163,7 +163,6 @@ export default function AdminDashboard() {
             </Link>
           </div>
         </div>
-        
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Popular Bikes</h2>
           <div className="space-y-3">
@@ -181,8 +180,8 @@ export default function AdminDashboard() {
                       <div className="h-10 w-10 mr-3">
                         <Image
                           height={"30"}
-                          width={"30"} 
-                          src={bike.imageUrl || "/placeholder-bike.jpg"} 
+                          width={"30"}
+                          src={bike.imageUrl || "/placeholder-bike.jpg"}
                           alt={bike.name}
                           className="h-10 w-10 rounded-full object-cover"
                         />

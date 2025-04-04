@@ -6,6 +6,10 @@ import { toast } from "react-toastify";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import Image from "next/image";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Textarea } from "../ui/textarea";
 
 export default function AdminCustomBookingModal({ onClose, adminId }) {
   // States for the booking form
@@ -164,11 +168,11 @@ export default function AdminCustomBookingModal({ onClose, adminId }) {
               
               {/* Select User Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label>
                   Select User *
-                </label>
+                </Label>
                 <div className="relative">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Search user by name or phone"
                     value={userSearchTerm}
@@ -263,30 +267,30 @@ export default function AdminCustomBookingModal({ onClose, adminId }) {
               
               {/* Booking Period */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   Booking Period *
-                </label>
+                </Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Start Time</label>
+                    <Label className="block text-xs text-gray-500 mb-1">Start Time</Label>
                     <DatePicker
                       selected={startDate}
                       onChange={setStartDate}
                       showTimeSelect
                       timeIntervals={30}
                       dateFormat="MMMM d, yyyy h:mm aa"
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                      className="shadow-input dark:placeholder-text-neutral-600 h-10 border-none bg-gray-50 px-3 py-2 text-sm text-black transition duration-400 group-hover/input:shadow-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-400 focus-visible:ring-[2px] focus-visible:ring-neutral-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-white dark:shadow-[0px_0px_1px_1px_#404040] dark:focus-visible:ring-neutral-600 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">End Time</label>
+                    <Label className="block text-xs text-gray-500 mb-1">End Time</Label>
                     <DatePicker
                       selected={endDate}
                       onChange={setEndDate}
                       showTimeSelect
                       timeIntervals={30}
                       dateFormat="MMMM d, yyyy h:mm aa"
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                      className="shadow-input dark:placeholder-text-neutral-600 h-10 border-none bg-gray-50 px-3 py-2 text-sm text-black transition duration-400 group-hover/input:shadow-none file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-400 focus-visible:ring-[2px] focus-visible:ring-neutral-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-800 dark:text-white dark:shadow-[0px_0px_1px_1px_#404040] dark:focus-visible:ring-neutral-600 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                       minDate={startDate}
                     />
                   </div>
@@ -341,15 +345,14 @@ export default function AdminCustomBookingModal({ onClose, adminId }) {
               
               {/* Custom Price */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label>
                   Custom Price (₹) *
-                </label>
-                <input
+                </Label>
+                <Input
                   type="number"
                   min="0"
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   placeholder="Enter custom price"
                   required
                 />
@@ -362,32 +365,33 @@ export default function AdminCustomBookingModal({ onClose, adminId }) {
               
               {/* Payment Status */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Label className="block text-sm font-medium text-gray-700 mb-1">
                   Payment Status
-                </label>
-                <select
-                  value={paymentStatus}
-                  onChange={(e) => setPaymentStatus(e.target.value)}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                >
-                  <option value="pending">Pending Payment</option>
-                  <option value="deposit_paid">Deposit Paid</option>
-                  <option value="fully_paid">Fully Paid</option>
-                  <option value="waived">Payment Waived</option>
-                </select>
+                </Label>
+              
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Payment Status"/>
+                    <SelectContent>
+                      <SelectGroup>
+                      <SelectItem value="pending">Pending Payment</SelectItem>
+                  <SelectItem value="deposit_paid">Deposit Paid</SelectItem>
+                  <SelectItem value="fully_paid">Fully Paid</SelectItem>
+                  <SelectItem value="waived">Payment Waived</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </SelectTrigger>
+                </Select>
               </div>
               
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (Optional)
-                </label>
-                <textarea
+                
+                <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  placeholder="Add any special notes or instructions for this booking"
+                  placeholder="Add any special notes or instructions for this booking (Optional)"
                 />
               </div>
             </div>

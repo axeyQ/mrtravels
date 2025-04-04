@@ -2,6 +2,20 @@
 import { useState } from "react";
 import { BiX } from "react-icons/bi";
 import BikeImageUpload from "./BikeImageUpload";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
 
 // Updated to only have "Bike" and "Moped" options
 const VEHICLE_TYPES = ["Bike", "Moped"];
@@ -73,119 +87,102 @@ export default function BikeForm({ bike = null, onSubmit, onCancel, title }) {
             onImageUpload={handleImageUpload}
           />
           
-          <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-            <div className="sm:col-span-3">
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <div className="flex justify-center items-center flex-col">
+          <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 w-full">
+            <LabelInputContainer>
+              <Label htmlFor="name">
                 Vehicle Name
-              </label>
-              <div className="mt-1">
-                <input
+              </Label>
+                <Input
                   type="text"
                   name="name"
                   id="name"
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
                 />
-              </div>
-            </div>
-            <div className="sm:col-span-3">
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                Type
-              </label>
+            </LabelInputContainer>
+           
+            <LabelInputContainer>
+              <Label htmlFor="registrationNumber">
+                Registration Number
+              </Label>
               <div className="mt-1">
-                <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
-                >
-                  {VEHICLE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Field for registration number - admin only */}
-            <div className="sm:col-span-3">
-              <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">
-                Registration Number (Admin Only)
-              </label>
-              <div className="mt-1">
-                <input
+                <Input
                   type="text"
                   name="registrationNumber"
                   id="registrationNumber"
                   value={formData.registrationNumber}
                   onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
                   placeholder="e.g. MH01AB1234"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  This will only be visible to administrators.
-                </p>
+
               </div>
-            </div>
-            
-            <div className="sm:col-span-3">
-              <label htmlFor="pricePerHour" className="block text-sm font-medium text-gray-700">
+            </LabelInputContainer>
+            <LabelInputContainer>
+              <Label htmlFor="pricePerHour" >
                 Price per Hour (₹)
-              </label>
-              <div className="mt-1">
-                <input
+              </Label>
+                <Input
                   type="number"
                   name="pricePerHour"
                   id="pricePerHour"
                   required
                   min="0"
-                  step="0.01"
+                  step="5"
                   value={formData.pricePerHour}
                   onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
                 />
-              </div>
-            </div>
+            </LabelInputContainer>
+</div>
+            {/* Field for registration number - admin only */}
             
-            <div className="sm:col-span-6">
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <div className="mt-1">
-                <textarea
+            <div className="mb-4 flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-2 w-full">
+                <Select id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}>
+                <SelectTrigger className=" w-full">
+        <SelectValue placeholder="Select a Vehicle Type" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectLabel>Vehicle Type</SelectLabel>
+          {VEHICLE_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+        </SelectGroup>
+      </SelectContent>
+                </Select>
+                <Textarea
                   id="description"
                   name="description"
                   rows={3}
                   value={formData.description}
                   onChange={handleChange}
-                  className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+                  placeholder="You can write Vehicle Description here..."
                 />
-              </div>
+            
             </div>
+            
+            
+            
+           
 
-            <div className="sm:col-span-6">
-              <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <input
-                    id="isAvailable"
-                    name="isAvailable"
-                    type="checkbox"
-                    checked={formData.isAvailable}
-                    onChange={handleChange}
-                    className="focus:ring-primary h-4 w-4 text-primary border-gray-300 rounded"
-                  />
-                </div>
-                <div className="ml-3 text-sm">
-                  <label htmlFor="isAvailable" className="font-medium text-gray-700">
-                    Available for booking
-                  </label>
-                </div>
-              </div>
-            </div>
+          
+            <div className="flex items-center space-x-2">
+            <Switch
+      id="isAvailable"
+      checked={formData.isAvailable}
+      onCheckedChange={(checked) =>
+        setFormData({ ...formData, isAvailable: checked })
+      }
+    />
+      <Label htmlFor="isAvailable">Available for Booking</Label>
+    </div>
+
           </div>
           <div className="mt-6 flex justify-end space-x-3">
             <button
@@ -208,3 +205,15 @@ export default function BikeForm({ bike = null, onSubmit, onCancel, title }) {
     </div>
   );
 }
+
+
+const LabelInputContainer = ({
+  children,
+  className
+}) => {
+  return (
+    <div className={cn("flex w-full flex-col space-y-2", className)}>
+      {children}
+    </div>
+  );
+};

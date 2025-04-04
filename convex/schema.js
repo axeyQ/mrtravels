@@ -1,4 +1,4 @@
-// Update to convex/schema.js - Add userActivities table
+// convex/schema.js
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -18,7 +18,6 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   }),
-  
   bookings: defineTable({
     // existing bookings table schema
     bikeId: v.id("bikes"),
@@ -29,16 +28,35 @@ export default defineSchema({
     endTime: v.number(),
     totalPrice: v.number(),
     status: v.string(), // "pending", "confirmed", "completed", "cancelled"
+    
     // Payment-related fields
     paymentStatus: v.optional(v.string()), // "pending", "deposit_paid", "fully_paid"
     depositAmount: v.optional(v.number()),
     remainingAmount: v.optional(v.number()),
     paymentTransactionId: v.optional(v.string()),
     depositPaidAt: v.optional(v.number()),
+    
     // New fields for custom bookings
     notes: v.optional(v.string()), // For custom booking notes
     isAdminBooking: v.optional(v.boolean()), // Flag to identify admin-created bookings
     createdAt: v.optional(v.number()), // Timestamp when booking was created
+    
+    // New fields for early return
+    actualEndTime: v.optional(v.number()), // Actual time when bike was returned
+    earlyReturn: v.optional(v.boolean()), // Flag to identify early returns
+    adjustedPrice: v.optional(v.number()), // Price after early return adjustment
+    originalPrice: v.optional(v.number()), // Original price before adjustment
+    refundAmount: v.optional(v.number()), // Amount to be refunded
+    returnProcessedAt: v.optional(v.number()), // When the return was processed
+    returnProcessedBy: v.optional(v.string()), // User who processed the return
+    
+    // New fields for booking extension
+    extended: v.optional(v.boolean()), // Flag to identify if booking was extended
+    originalEndTime: v.optional(v.number()), // Original end time before extension
+    extensionTime: v.optional(v.number()), // When the extension was made
+    extensionHours: v.optional(v.number()), // Additional hours added
+    extensionCost: v.optional(v.number()), // Additional cost for extension
+    extensionProcessedBy: v.optional(v.string()), // User who processed the extension
   }).index("by_userId", ["userId"]).index("by_bikeId", ["bikeId"]),
   
   users: defineTable({
@@ -70,9 +88,14 @@ export default defineSchema({
     paymentTime: v.optional(v.number()),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
+    
+    // New fields for refunds
+    isRefund: v.optional(v.boolean()),
+    refundReason: v.optional(v.string()),
+    originalPaymentId: v.optional(v.id("payments")),
   }).index("by_bookingId", ["bookingId"]).index("by_userId", ["userId"]),
   
-  // NEW: User activity logs table
+  // User activity logs table
   userActivities: defineTable({
     userId: v.string(),
     action: v.string(), // "login", "profile_update", "booking_created", etc.
@@ -81,4 +104,12 @@ export default defineSchema({
     userAgent: v.optional(v.string()),
     timestamp: v.number(),
   }).index("by_userId", ["userId"]).index("by_timestamp", ["timestamp"]),
+  
+  // Store status table
+  storeStatus: defineTable({
+    isOpen: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    updatedBy: v.string(), // Admin who last updated the status
+  }),
 });

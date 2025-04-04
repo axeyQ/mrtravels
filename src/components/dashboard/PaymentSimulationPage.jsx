@@ -1,6 +1,5 @@
 "use client";
-
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '@clerk/nextjs';
@@ -9,31 +8,40 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 
-// Component that uses useSearchParams
-function PaymentSimulationContent() {
+// Debounce utility
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+export default function PaymentSimulationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
   const { user } = useUser();
-  
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [showSimulation, setShowSimulation] = useState(false); // For development testing
   const [buttonCooldown, setButtonCooldown] = useState(false);
 
   // Get booking details
-  const booking = useQuery(
-    api.bookings.getBikeBookingById,
+  const booking = useQuery(api.bookings.getBikeBookingById,
     bookingId ? { bookingId } : "skip"
   );
-
+  
   // Get bike details
   const bikeId = booking?.bikeId;
-  const bike = useQuery(
-    api.bikes.getBikeById,
+  const bike = useQuery(api.bikes.getBikeById,
     bikeId ? { bikeId } : "skip"
   );
-
+  
   const isLoading = !booking || !bike;
 
   // Check if we're in development
@@ -43,8 +51,8 @@ function PaymentSimulationContent() {
     }
   }, []);
 
-  // Handle Paytm payment
-  const handlePaytmPayment = async () => {
+  // Handle Cashfree payment
+  const handleCashfreePayment = async () => {
     if (!user || !booking || buttonCooldown || isProcessing) return;
     
     // Prevent multiple clicks
@@ -56,7 +64,7 @@ function PaymentSimulationContent() {
       // Add a small delay to prevent rapid API calls
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Call API to initiate Paytm payment
+      // Call API to initiate Cashfree payment
       const response = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: {
@@ -74,9 +82,9 @@ function PaymentSimulationContent() {
       const data = await response.json();
       
       if (data.success && data.paymentUrl) {
-        setProcessingStatus('Redirecting to Paytm...');
-        console.log('Redirecting to Paytm payment page:', data.paymentUrl);
-        // Redirect to Paytm payment page
+        setProcessingStatus('Redirecting to Cashfree...');
+        console.log('Redirecting to Cashfree payment page:', data.paymentUrl);
+        // Redirect to Cashfree payment page
         window.location.href = data.paymentUrl;
       } else {
         if (data.error === 'Too many requests. Please wait a moment and try again.') {
@@ -100,7 +108,6 @@ function PaymentSimulationContent() {
   // Simulation functions - only for development testing
   const handleSimulateSuccess = async () => {
     if (!bookingId || buttonCooldown || isProcessing) return;
-    
     setButtonCooldown(true);
     setIsProcessing(true);
     setProcessingStatus('Simulating successful payment...');
@@ -149,7 +156,6 @@ function PaymentSimulationContent() {
 
   const handleSimulateFailure = async () => {
     if (!bookingId || buttonCooldown || isProcessing) return;
-    
     setButtonCooldown(true);
     setIsProcessing(true);
     setProcessingStatus('Simulating failed payment...');
@@ -274,26 +280,31 @@ function PaymentSimulationContent() {
                   * ₹40 from deposit goes to bike owner, ₹2 is platform fee
                 </p>
               </div>
-              {/* Paytm Logo */}
+              {/* Cashfree Logo */}
               <div className="flex justify-center mb-6">
                 <div className="bg-blue-100 p-3 rounded-md flex items-center">
-                  <span className="text-blue-800 font-bold mr-2">Paytm</span>
+                  <span className="text-blue-800 font-bold mr-2">Cashfree</span>
                   {process.env.NODE_ENV === 'development' && (
                     <span className="text-xs text-blue-600">(Test Environment)</span>
                   )}
                 </div>
               </div>
+
               <div className="mt-8 space-y-4">
-                {/* Real Paytm Payment Button */}
+                {/* Cashfree Payment Button */}
                 <button
-                  onClick={handlePaytmPayment}
+                  onClick={handleCashfreePayment}
                   disabled={buttonCooldown || isProcessing}
                   className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                    ${buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} 
-                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                    ${
+                      buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`
+                  }
                 >
-                  {buttonCooldown && !isProcessing ? 'Please wait...' : 'Pay ₹42 with Paytm'}
+                  {buttonCooldown && !isProcessing ? 'Please wait...' : 'Pay ₹42 with Cashfree'}
                 </button>
+                
                 {/* Development Simulation Buttons - only shown in development */}
                 {showSimulation && (
                   <>
@@ -305,7 +316,10 @@ function PaymentSimulationContent() {
                         onClick={handleSimulateSuccess}
                         disabled={buttonCooldown || isProcessing}
                         className={`flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
-                          ${buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
+                          ${
+                            buttonCooldown || isProcessing ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-green-600 hover:bg-green-700'
+                          }`}
                       >
                         {buttonCooldown && !isProcessing ? 'Please wait...' : 'Simulate Success'}
                       </button>
@@ -314,8 +328,8 @@ function PaymentSimulationContent() {
                         disabled={buttonCooldown || isProcessing}
                         className={`flex-1 py-2 px-4 border ${
                           buttonCooldown || isProcessing
-                            ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                         } rounded-md shadow-sm text-sm font-medium`}
                       >
                         {buttonCooldown && !isProcessing ? 'Please wait...' : 'Simulate Failure'}
@@ -323,6 +337,7 @@ function PaymentSimulationContent() {
                     </div>
                   </>
                 )}
+                
                 <button
                   onClick={handleCancel}
                   disabled={isProcessing}
@@ -336,21 +351,5 @@ function PaymentSimulationContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Main component with Suspense boundary
-export default function PaymentSimulationPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="h-16 w-16 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading payment interface...</p>
-        </div>
-      </div>
-    }>
-      <PaymentSimulationContent />
-    </Suspense>
   );
 }

@@ -9,6 +9,8 @@ import { toast } from 'react-toastify';
 import Link from 'next/link';
 import CloudinaryDocumentUpload from '@/components/ui/CloudinaryDocumentUpload';
 import Image from 'next/image';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 
 // Create a separate component that uses useSearchParams
 function ProfileContent() {
@@ -346,41 +348,39 @@ function ProfileContent() {
           {/* Personal Information Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+              <Label htmlFor="firstName">
                 First Name *
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 id="firstName"
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
                 required
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 placeholder="Your first name"
               />
             </div>
             <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+              <Label htmlFor="lastName" >
                 Last Name *
-              </label>
-              <input
+              </Label>
+              <Input
                 type="text"
                 id="lastName"
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
                 required
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 placeholder="Your last name"
               />
             </div>
             <div className="md:col-span-2">
-              <label htmlFor="licenseNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              <Label htmlFor="licenseNumber" >
                 License Number *
-              </label>
+              </Label>
               <div>
-                <input
+                <Input
                   type="text"
                   id="licenseNumber"
                   name="licenseNumber"
