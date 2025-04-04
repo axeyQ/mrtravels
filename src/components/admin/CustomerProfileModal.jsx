@@ -203,7 +203,7 @@ export default function CustomerProfileModal({ isOpen, onClose, user }) {
                 
                 {/* License */}
                 <div className="mb-6">
-                  <h4 className="mb-2 text-sm font-medium text-gray-700">Driver's License</h4>
+                  <h4 className="mb-2 text-sm font-medium text-gray-700">Driver&apos;s License</h4>
                   <div className="relative rounded-lg border bg-gray-50 p-2">
                     {user.licenseImageUrl ? (
                       <div className="relative h-48 w-full overflow-hidden rounded border bg-white">
@@ -293,7 +293,7 @@ export default function CustomerProfileModal({ isOpen, onClose, user }) {
             {activeTab === 'activity' && (
               <div>
                 <h3 className="mb-4 text-lg font-medium text-gray-900">Booking History</h3>
-                <p className="text-sm text-gray-500">This section would display the user's booking history.</p>
+                <p className="text-sm text-gray-500">This section would display the user&apos;s booking history.</p>
                 
                 {/* Placeholder for booking history - would be populated with actual data */}
                 <div className="mt-4 space-y-4">
