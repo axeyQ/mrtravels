@@ -1,457 +1,338 @@
+// src/components/admin/UserDetailView.jsx
 "use client";
-import { useState, useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import { motion } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
-import Image from "next/image";
-import { BiX, BiDownload, BiFile, BiUser, BiCalendar, BiLock, BiPhone } from "react-icons/bi";
+import { useState } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { BiX, BiDownload } from 'react-icons/bi';
+import Image from 'next/image';
 
-export default function UserDetailView({ userId, adminId, onClose }) {
-  const [selectedTab, setSelectedTab] = useState("profile");
-  const [enlargedImage, setEnlargedImage] = useState(null);
+export default function UserDetailView({ user, onClose, onToggleAdmin }) {
+  const [activeTab, setActiveTab] = useState('profile');
   
-  // Get user details
-  const userData = useQuery(api.users.getUser, { userId });
+  // Get the userId from the user object
+  const userId = user?.userId;
   
-  // Get user bookings
-  const userBookings = useQuery(api.bookings.getUserBookings, { userId });
-  
-  // Get user activities
-  const userActivities = useQuery(
-    api.userActivities.getUserActivities, 
-    { adminId, userId, limit: 100 }
+  // Only query if we have a userId
+  const userData = useQuery(
+    api.users.getUser,
+    userId ? { userId } : "skip"  // Skip the query if no userId
   );
   
-  const isLoading = !userData || userActivities === undefined || userBookings === undefined;
+  // Get user bookings
+  const userBookings = useQuery(
+    api.bookings.getUserBookings,
+    userId ? { userId } : "skip"  // Skip the query if no userId
+  ) || [];
   
-  // Format date
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "N/A";
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-  
-  // Format relative time
-  const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return "N/A";
-    return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-  };
-  
-  // Handle image click to enlarge
-  const handleImageClick = (imageUrl, title) => {
-    if (!imageUrl) return;
-    setEnlargedImage({ url: imageUrl, title });
-  };
-  
-  // Close enlarged image on ESC key press
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === "Escape") {
-        setEnlargedImage(null);
-      }
-    };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, []);
-  
-  // Create a friendly format for activity details
-  const formatActivityDetails = (action, details) => {
-    try {
-      // If details is a JSON string, parse it
-      const parsedDetails = details ? JSON.parse(details) : {};
-      
-      switch (action) {
-        case "login":
-          return "User logged in";
-        case "profile_update":
-          return `Updated profile: ${Object.keys(parsedDetails).join(", ")}`;
-        case "booking_created":
-          return `Created booking for ${parsedDetails.bikeName || "a bike"}`;
-        case "booking_cancelled":
-          return `Cancelled booking #${parsedDetails.bookingId || ""}`;
-        case "payment_made":
-          return `Made payment of ₹${parsedDetails.amount || "0"}`;
-        default:
-          return action.replace(/_/g, " ");
-      }
-    } catch (e) {
-      // If JSON parsing fails, just return the action
-      return action.replace(/_/g, " ");
-    }
-  };
-
-  if (isLoading) {
+  // If user data isn't ready yet, show a loading state
+  if (!user || (userId && !userData)) {
     return (
       <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-4xl w-full">
-          <div className="animate-pulse flex flex-col space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-64 bg-gray-200 rounded"></div>
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-lg font-semibold">Loading User Profile...</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <BiX className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="p-6 flex justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
           </div>
         </div>
       </div>
     );
   }
-
+  
+  // Use the combined data from the initial user object and any additional data from the query
+  const userInfo = { ...user, ...userData };
+  const isAdmin = userInfo.role === "admin";
+  
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50">
-      {/* Enlarged image view */}
-      {enlargedImage && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50 p-4"
-          onClick={() => setEnlargedImage(null)}
-        >
-          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 text-white">
-              <h3 className="text-xl font-medium">{enlargedImage.title}</h3>
-              <button
-                onClick={() => setEnlargedImage(null)}
-                className="text-white hover:text-gray-300"
-              >
-                <BiX className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="bg-white p-1 rounded">
-              <img
-                src={enlargedImage.url}
-                alt={enlargedImage.title}
-                className="mx-auto max-h-[75vh] object-contain"
-              />
-            </div>
-            <p className="text-center text-white text-sm mt-4">
-              Press ESC or click outside the image to close
-            </p>
-            <a 
-              href={enlargedImage.url} 
-              download 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="mt-4 flex items-center justify-center px-4 py-2 bg-white text-gray-800 rounded-md hover:bg-gray-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <BiDownload className="mr-2" /> Download Image
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Main modal content */}
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex justify-between items-center bg-gray-50 border-b px-6 py-4">
-          <h2 className="text-xl font-bold">
-            User Profile: {userData.firstName} {userData.lastName}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-lg font-semibold">User Profile: {userInfo.firstName} {userInfo.lastName}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-500"
+          >
             <BiX className="h-6 w-6" />
           </button>
         </div>
-
+        
         {/* Tabs */}
-        <div className="flex border-b">
+        <div className="flex border-b border-gray-200">
           <button
-            className={`px-6 py-3 text-sm font-medium ${
-              selectedTab === "profile"
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500 hover:text-gray-700"
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'profile'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
-            onClick={() => setSelectedTab("profile")}
+            onClick={() => setActiveTab('profile')}
           >
             Profile & Documents
           </button>
           <button
-            className={`px-6 py-3 text-sm font-medium ${
-              selectedTab === "bookings"
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500 hover:text-gray-700"
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'bookings'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
-            onClick={() => setSelectedTab("bookings")}
+            onClick={() => setActiveTab('bookings')}
           >
             Bookings
           </button>
           <button
-            className={`px-6 py-3 text-sm font-medium ${
-              selectedTab === "activity"
-                ? "border-b-2 border-primary text-primary"
-                : "text-gray-500 hover:text-gray-700"
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'activity'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
-            onClick={() => setSelectedTab("activity")}
+            onClick={() => setActiveTab('activity')}
           >
             Activity Log
           </button>
         </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Profile Tab */}
-          {selectedTab === "profile" && (
-            <div className="space-y-8">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Profile Picture */}
-                <div className="flex flex-col items-center space-y-3">
-                  <div 
-                    className="w-40 h-40 rounded-full overflow-hidden cursor-pointer border-4 border-gray-200"
-                    onClick={() => handleImageClick(userData.profilePictureUrl || userData.imageUrl, "Profile Picture")}
-                  >
-                    {userData.profilePictureUrl || userData.imageUrl ? (
-                      <img
-                        src={userData.profilePictureUrl || userData.imageUrl}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
+        
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+          {activeTab === 'profile' && (
+            <div className="p-6">
+              {/* User Profile Section */}
+              <div className="flex flex-col md:flex-row">
+                <div className="md:w-1/3 flex flex-col items-center mb-6 md:mb-0">
+                  <div className="relative w-32 h-32 rounded-full overflow-hidden bg-gray-100 mb-4">
+                    {userInfo.profilePictureUrl ? (
+                      <Image
+                        src={userInfo.profilePictureUrl}
+                        alt={`${userInfo.firstName} ${userInfo.lastName}`}
+                        fill
+                        className="object-cover"
+                        sizes="128px"
+                      />
+                    ) : userInfo.imageUrl ? (
+                      <Image
+                        src={userInfo.imageUrl}
+                        alt={`${userInfo.firstName} ${userInfo.lastName}`}
+                        fill
+                        className="object-cover"
+                        sizes="128px"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                        <BiUser className="w-20 h-20" />
+                      <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                        <svg className="h-16 w-16" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                        </svg>
                       </div>
                     )}
                   </div>
-                  <div className="text-center">
-                    <h3 className="font-medium text-lg">
-                      {userData.firstName} {userData.lastName}
-                    </h3>
-                    <p className="text-gray-500">{userData.phoneNumber || "No phone number"}</p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      userData.role === "admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"
-                    }`}>
-                      {userData.role}
-                    </span>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      userData.profileComplete ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
-                    }`}>
-                      {userData.profileComplete ? "Profile Complete" : "Incomplete Profile"}
-                    </span>
+                  <h3 className="text-lg font-semibold">{userInfo.firstName} {userInfo.lastName}</h3>
+                  <p className="text-gray-500">{userInfo.phoneNumber}</p>
+                  <div className="mt-2 flex space-x-2">
+                    {isAdmin && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        admin
+                      </span>
+                    )}
+                    {userInfo.profileComplete && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Profile Complete
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                {/* User Information */}
-                <div className="md:col-span-2">
-                  <h3 className="text-lg font-medium mb-4">Account Information</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiUser className="mr-1 text-gray-400" /> Full Name
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">{userData.firstName} {userData.lastName}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiPhone className="mr-1 text-gray-400" /> Phone Number
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">{userData.phoneNumber || "Not provided"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiCalendar className="mr-1 text-gray-400" /> Member Since
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">{formatDate(userData.createdAt)}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiLock className="mr-1 text-gray-400" /> User ID
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900 truncate" title={userData.userId}>{userData.userId}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiFile className="mr-1 text-gray-400" /> License Number
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">{userData.licenseNumber || "Not provided"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm font-medium text-gray-500 flex items-center">
-                          <BiFile className="mr-1 text-gray-400" /> Verification Status
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">
-                          {userData.profileComplete ? 
-                            <span className="text-green-600 font-medium">Verified</span> : 
-                            <span className="text-red-600 font-medium">Not Verified</span>
-                          }
-                        </dd>
-                      </div>
-                    </dl>
+                
+                <div className="md:w-2/3 md:pl-6">
+                  <h3 className="text-lg font-semibold mb-4">Account Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Full Name</p>
+                      <p className="text-gray-900">{userInfo.firstName} {userInfo.lastName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Phone Number</p>
+                      <p className="text-gray-900">{userInfo.phoneNumber || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Member Since</p>
+                      <p className="text-gray-900">{userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">User ID</p>
+                      <p className="text-gray-900 truncate">{userInfo.userId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">License Number</p>
+                      <p className="text-gray-900">{userInfo.licenseNumber || "Not provided"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Verification Status</p>
+                      <p className={`${userInfo.profileComplete ? "text-green-600" : "text-red-600"} font-medium`}>
+                        {userInfo.profileComplete ? "Verified" : "Not Verified"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <button
+                      onClick={() => onToggleAdmin(userInfo)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium ${
+                        isAdmin
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                      }`}
+                    >
+                      {isAdmin ? "Remove Admin Access" : "Grant Admin Access"}
+                    </button>
                   </div>
                 </div>
               </div>
-
-              {/* Documents Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Identity Documents</h3>
+              
+              {/* ID Documents Section */}
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Identity Documents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* License */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
-                      <h4 className="font-medium text-gray-700">Driver&apos;s License</h4>
-                      {userData.licenseImageUrl && (
+                  {/* Driver's License */}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                      <h4 className="font-medium">Driver's License</h4>
+                      {userInfo.licenseImageUrl && (
                         <a 
-                          href={userData.licenseImageUrl} 
-                          download 
+                          href={userInfo.licenseImageUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-primary hover:text-primary-600 text-sm"
+                          className="text-primary hover:text-primary-dark"
                         >
                           <BiDownload className="h-5 w-5" />
                         </a>
                       )}
                     </div>
-                    <div className="p-4">
-                      {userData.licenseNumber && (
-                        <p className="text-sm text-gray-500 mb-2">
-                          License #: <span className="font-medium text-gray-700">{userData.licenseNumber}</span>
-                        </p>
-                      )}
-                      {userData.licenseImageUrl ? (
-                        <div
-                          className="h-40 w-full mt-2 border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer"
-                          onClick={() => handleImageClick(userData.licenseImageUrl, "Driver's License")}
-                        >
-                          <img
-                            src={userData.licenseImageUrl}
-                            alt="Driver's License"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-40 bg-gray-100 rounded mt-2">
-                          <p className="text-gray-400">No license uploaded</p>
-                        </div>
-                      )}
+                    <div className="p-3">
+                      <p className="text-sm text-gray-500 mb-2">License #: {userInfo.licenseNumber || "Not provided"}</p>
+                      <div className="h-48 bg-gray-100 rounded flex items-center justify-center">
+                        {userInfo.licenseImageUrl ? (
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={userInfo.licenseImageUrl}
+                              alt="Driver's License"
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No document uploaded</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Aadhar Card (Front) */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
-                      <h4 className="font-medium text-gray-700">Aadhar Card (Front)</h4>
-                      {userData.aadharImageUrl && (
+                  {/* Aadhar Card Front */}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                      <h4 className="font-medium">Aadhar Card (Front)</h4>
+                      {userInfo.aadharImageUrl && (
                         <a 
-                          href={userData.aadharImageUrl} 
-                          download 
+                          href={userInfo.aadharImageUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-primary hover:text-primary-600 text-sm"
+                          className="text-primary hover:text-primary-dark"
                         >
                           <BiDownload className="h-5 w-5" />
                         </a>
                       )}
                     </div>
-                    <div className="p-4">
-                      {userData.aadharImageUrl ? (
-                        <div
-                          className="h-40 w-full mt-2 border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer"
-                          onClick={() => handleImageClick(userData.aadharImageUrl, "Aadhar Card (Front)")}
-                        >
-                          <img
-                            src={userData.aadharImageUrl}
-                            alt="Aadhar Card (Front)"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-40 bg-gray-100 rounded mt-2">
-                          <p className="text-gray-400">No Aadhar front uploaded</p>
-                        </div>
-                      )}
+                    <div className="p-3">
+                      <div className="h-48 bg-gray-100 rounded flex items-center justify-center">
+                        {userInfo.aadharImageUrl ? (
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={userInfo.aadharImageUrl}
+                              alt="Aadhar Card Front"
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No document uploaded</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Aadhar Card (Back) */}
-                  <div className="border rounded-lg overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-2 border-b flex justify-between items-center">
-                      <h4 className="font-medium text-gray-700">Aadhar Card (Back)</h4>
-                      {userData.aadharBackImageUrl && (
+                  {/* Aadhar Card Back */}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                      <h4 className="font-medium">Aadhar Card (Back)</h4>
+                      {userInfo.aadharBackImageUrl && (
                         <a 
-                          href={userData.aadharBackImageUrl} 
-                          download 
+                          href={userInfo.aadharBackImageUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-primary hover:text-primary-600 text-sm"
+                          className="text-primary hover:text-primary-dark"
                         >
                           <BiDownload className="h-5 w-5" />
                         </a>
                       )}
                     </div>
-                    <div className="p-4">
-                      {userData.aadharBackImageUrl ? (
-                        <div
-                          className="h-40 w-full mt-2 border border-gray-200 rounded-md flex items-center justify-center bg-gray-50 overflow-hidden cursor-pointer"
-                          onClick={() => handleImageClick(userData.aadharBackImageUrl, "Aadhar Card (Back)")}
-                        >
-                          <img
-                            src={userData.aadharBackImageUrl}
-                            alt="Aadhar Card (Back)"
-                            className="max-h-full max-w-full object-contain"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center h-40 bg-gray-100 rounded mt-2">
-                          <p className="text-gray-400">No Aadhar back uploaded</p>
-                        </div>
-                      )}
+                    <div className="p-3">
+                      <div className="h-48 bg-gray-100 rounded flex items-center justify-center">
+                        {userInfo.aadharBackImageUrl ? (
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={userInfo.aadharBackImageUrl}
+                              alt="Aadhar Card Back"
+                              fill
+                              className="object-contain"
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">No document uploaded</p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
-
-          {/* Bookings Tab */}
-          {selectedTab === "bookings" && (
-            <div>
-              <h3 className="text-lg font-medium mb-4">Booking History</h3>
-              {userBookings && userBookings.length > 0 ? (
+          
+          {activeTab === 'bookings' && (
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">User Bookings</h3>
+              {userBookings.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bike</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {userBookings.map((booking) => (
+                      {userBookings.map(booking => (
                         <tr key={booking._id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDate(booking.startTime)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {booking.bikeId}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {Math.ceil((booking.endTime - booking.startTime) / (1000 * 60 * 60))} hours
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            ₹{booking.totalPrice}
-                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{booking._id.substring(0, 8)}...</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(booking.startTime).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{booking.bikeId}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₹{booking.totalPrice}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              booking.status === "completed" ? "bg-green-100 text-green-800" :
-                              booking.status === "confirmed" ? "bg-blue-100 text-blue-800" :
-                              booking.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                              "bg-red-100 text-red-800"
+                              booking.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                              booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
                             }`}>
                               {booking.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              booking.paymentStatus === "fully_paid" ? "bg-green-100 text-green-800" :
-                              booking.paymentStatus === "deposit_paid" ? "bg-blue-100 text-blue-800" :
-                              "bg-yellow-100 text-yellow-800"
-                            }`}>
-                              {booking.paymentStatus || "No payment"}
                             </span>
                           </td>
                         </tr>
@@ -460,61 +341,28 @@ export default function UserDetailView({ userId, adminId, onClose }) {
                   </table>
                 </div>
               ) : (
-                <div className="bg-gray-50 p-6 text-center rounded-lg">
+                <div className="bg-gray-50 p-4 rounded text-center">
                   <p className="text-gray-500">No bookings found for this user.</p>
                 </div>
               )}
             </div>
           )}
-
-          {/* Activity Log Tab */}
-          {selectedTab === "activity" && (
-            <div>
-              <h3 className="text-lg font-medium mb-4">User Activity Log</h3>
-              {userActivities && userActivities.length > 0 ? (
-                <div className="space-y-4">
-                  {userActivities.map((activity) => (
-                    <div key={activity._id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{formatActivityDetails(activity.action, activity.details)}</h4>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {formatDate(activity.timestamp)} ({formatTimeAgo(activity.timestamp)})
-                          </p>
-                        </div>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          activity.action.includes("login") ? "bg-green-100 text-green-800" :
-                          activity.action.includes("update") ? "bg-blue-100 text-blue-800" :
-                          activity.action.includes("booking") ? "bg-purple-100 text-purple-800" :
-                          activity.action.includes("payment") ? "bg-yellow-100 text-yellow-800" :
-                          "bg-gray-100 text-gray-800"
-                        }`}>
-                          {activity.action.replace(/_/g, " ")}
-                        </span>
-                      </div>
-                      {activity.ipAddress && (
-                        <div className="mt-2 text-xs text-gray-500">
-                          <p>IP: {activity.ipAddress}</p>
-                          {activity.userAgent && <p className="truncate">{activity.userAgent}</p>}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-gray-50 p-6 text-center rounded-lg">
-                  <p className="text-gray-500">No activity logs found for this user.</p>
-                </div>
-              )}
+          
+          {activeTab === 'activity' && (
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Activity Log</h3>
+              <div className="bg-gray-50 p-4 rounded text-center">
+                <p className="text-gray-500">User activity tracking is not implemented yet.</p>
+              </div>
             </div>
           )}
         </div>
-
+        
         {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 border-t flex justify-end">
+        <div className="p-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
           >
             Close
           </button>
