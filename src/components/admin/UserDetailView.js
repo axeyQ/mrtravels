@@ -199,7 +199,7 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
                   {/* Driver's License */}
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
                     <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                      <h4 className="font-medium">Driver's License</h4>
+                      <h4 className="font-medium">Driver&apos;s License</h4>
                       {userInfo.licenseImageUrl && (
                         <a 
                           href={userInfo.licenseImageUrl} 
@@ -218,7 +218,7 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
                           <div className="relative w-full h-full">
                             <Image
                               src={userInfo.licenseImageUrl}
-                              alt="Driver's License"
+                              alt="Driver&apos;s License"
                               fill
                               className="object-contain"
                               sizes="(max-width: 768px) 100vw, 33vw"
