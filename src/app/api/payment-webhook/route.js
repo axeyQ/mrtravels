@@ -1,49 +1,52 @@
 // src/app/api/payment-webhook/route.js
 import { NextResponse } from 'next/server';
-import { cashfreeConfig, verifyWebhookSignature } from '@/lib/cashfree';
+import { phonepeConfig, verifyWebhookSignature } from '@/lib/phonepe';
 
 export async function POST(request) {
   try {
     // Get the raw request body and headers
-    const body = await request.json();
-    const signature = request.headers.get('x-webhook-signature');
+    const rawBody = await request.text();
+    const xVerifyHeader = request.headers.get('X-VERIFY');
     
-    // Verify Cashfree webhook signature
-    if (!signature) {
-      console.error('Missing x-webhook-signature in webhook');
-      return NextResponse.json({ status: 'ERROR', message: 'Missing signature' }, { status: 400 });
+    // Verify signature if present
+    if (xVerifyHeader) {
+      const isValid = verifyWebhookSignature(rawBody, xVerifyHeader);
+      if (!isValid) {
+        console.error('Invalid X-VERIFY signature in webhook');
+        return NextResponse.json({ success: false, message: 'Invalid signature' }, { status: 400 });
+      }
+    } else {
+      console.warn('Missing X-VERIFY header in webhook');
     }
     
-    // Verify the webhook signature
-    const isValid = verifyWebhookSignature(body, signature, cashfreeConfig.secretKey);
-    if (!isValid) {
-      console.error('Invalid webhook signature');
-      return NextResponse.json({ status: 'ERROR', message: 'Invalid signature' }, { status: 400 });
-    }
+    // Parse the request body
+    const body = JSON.parse(rawBody);
     
-    // Extract order details
-    const { orderId, orderAmount, orderStatus, referenceId } = body.data || {};
+    console.log('Webhook received from PhonePe:', {
+      code: body.code,
+      transactionId: body.data?.transactionId,
+      merchantTransactionId: body.data?.merchantTransactionId
+    });
     
-    // Validate that required fields are present
-    if (!orderId) {
-      console.error('Missing required fields in webhook payload');
-      return NextResponse.json({ status: 'ERROR', message: 'Invalid payload' }, { status: 400 });
-    }
-    
-    // Parse the order ID to extract bookingId
+    // Extract booking ID from merchantTransactionId
     // Format is BIKEFLIX_bookingId_timestamp
-    const bookingIdMatch = orderId.match(/BIKEFLIX_([^_]+)_/);
-    const bookingId = bookingIdMatch ? bookingIdMatch[1] : null;
+    let bookingId = null;
+    if (body.data?.merchantTransactionId) {
+      const parts = body.data.merchantTransactionId.split('_');
+      if (parts.length >= 2) {
+        bookingId = parts[1];
+      }
+    }
     
     if (!bookingId) {
-      console.error(`Cannot extract bookingId from order ID: ${orderId}`);
-      return NextResponse.json({ status: 'ERROR', message: 'Invalid order ID format' }, { status: 400 });
+      console.error('Cannot extract bookingId from merchantTransactionId');
+      return NextResponse.json({ success: false, message: 'Invalid transaction ID format' }, { status: 400 });
     }
     
-    console.log(`Webhook received for booking ${bookingId}, order ${orderId}, state: ${orderStatus}`);
-    
     // Check if payment was successful
-    const isSuccessful = orderStatus === 'PAID';
+    const isSuccessful = body.code === 'PAYMENT_SUCCESS';
+    
+    console.log(`Webhook payment status for booking ${bookingId}: ${body.code}`);
     
     // Update booking status in your database
     try {
@@ -56,8 +59,8 @@ export async function POST(request) {
         body: JSON.stringify({
           bookingId,
           success: isSuccessful,
-          transactionId: referenceId || orderId,
-          amount: parseFloat(orderAmount) || 42
+          transactionId: body.data?.transactionId || body.data?.merchantTransactionId || 'webhook',
+          amount: body.data?.amount ? body.data.amount / 100 : 42 // Convert from paise to rupees
         })
       });
       
@@ -70,10 +73,10 @@ export async function POST(request) {
       console.error(`Error updating booking ${bookingId} payment status:`, error);
     }
     
-    // Return success to Cashfree
-    return NextResponse.json({ status: 'OK' });
+    // Return success to PhonePe
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error processing Cashfree webhook:', error);
-    return NextResponse.json({ status: 'ERROR', message: 'Internal server error' }, { status: 500 });
+    console.error('Error processing PhonePe webhook:', error);
+    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
   }
 }

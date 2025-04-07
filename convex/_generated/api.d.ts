@@ -16,7 +16,6 @@ import type {
 import type * as bikes from "../bikes.js";
 import type * as bookings from "../bookings.js";
 import type * as storeStatus from "../storeStatus.js";
-import type * as userActivities from "../userActivities.js";
 import type * as users from "../users.js";
 
 /**
@@ -31,7 +30,6 @@ declare const fullApi: ApiFromModules<{
   bikes: typeof bikes;
   bookings: typeof bookings;
   storeStatus: typeof storeStatus;
-  userActivities: typeof userActivities;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

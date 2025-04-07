@@ -95,15 +95,7 @@ export default defineSchema({
     originalPaymentId: v.optional(v.id("payments")),
   }).index("by_bookingId", ["bookingId"]).index("by_userId", ["userId"]),
   
-  // User activity logs table
-  userActivities: defineTable({
-    userId: v.string(),
-    action: v.string(), // "login", "profile_update", "booking_created", etc.
-    details: v.optional(v.string()), // JSON string with activity details
-    ipAddress: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    timestamp: v.number(),
-  }).index("by_userId", ["userId"]).index("by_timestamp", ["timestamp"]),
+ 
   
   // Store status table
   storeStatus: defineTable({

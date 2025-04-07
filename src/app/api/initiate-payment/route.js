@@ -1,6 +1,11 @@
 // src/app/api/initiate-payment/route.js
 import { NextResponse } from 'next/server';
-import { cashfreeConfig, generateOrderId } from '@/lib/cashfree';
+import { 
+  phonepeConfig, 
+  generateTransactionId, 
+  encodePayload, 
+  generateXVerifyHeader 
+} from '@/lib/phonepe';
 
 // Simple in-memory rate limiting
 const requestTracker = {
@@ -47,103 +52,100 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // Generate a unique order ID
-    const orderId = generateOrderId(bookingId);
+    // Generate a unique transaction ID
+    const merchantTransactionId = generateTransactionId(bookingId);
 
     // Format customer details from available data
     const customerName = userName?.trim() || 'Unknown';
     const customerPhone = userPhone?.replace(/\D/g, '').slice(-10) || '8982611817'; // Example number
     const customerEmail = `user_${userId}@bikeflix.com`; // Fallback email
 
-    // Log credentials for debugging
-    console.log("Using Cashfree credentials:", {
-      appId: cashfreeConfig.appId,
-      // Don't log the full secret key for security reasons
-      secretKey: cashfreeConfig.secretKey ? "***" + cashfreeConfig.secretKey.substring(cashfreeConfig.secretKey.length - 4) : "not set",
-      environment: process.env.NODE_ENV
-    });
-    
     // ===============================================================
     // USING SIMULATION FOR DEVELOPMENT/TESTING WITHOUT REAL API CALLS
     // ===============================================================
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log("DEVELOPMENT MODE: Using payment simulation instead of real Cashfree API");
+    if (process.env.NODE_ENV === 'development' && process.env.USE_PAYMENT_SIMULATION === 'true') {
+      console.log("DEVELOPMENT MODE: Using payment simulation instead of real PhonePe API");
       
       // Create a simulated successful response
-      const simulatedOrderId = orderId;
+      const simulatedTransactionId = merchantTransactionId;
       const simulatedSessionId = "session_" + Date.now();
       
       // Simulate successful payment URL
-      const simulatedPaymentUrl = `/payment-simulation?order_id=${simulatedOrderId}&session_id=${simulatedSessionId}&booking_id=${bookingId}`;
+      const simulatedPaymentUrl = `/payment-simulation?transaction_id=${simulatedTransactionId}&session_id=${simulatedSessionId}&booking_id=${bookingId}`;
       
       return NextResponse.json({
         success: true,
         paymentUrl: simulatedPaymentUrl,
-        orderId: simulatedOrderId,
-        cfOrderId: simulatedSessionId,
+        transactionId: simulatedTransactionId,
         simulation: true
       });
     }
     
     // ===========================
-    // REAL CASHFREE API CALL CODE
+    // REAL PHONEPE API CALL CODE
     // ===========================
     
-    // Prepare order data for Cashfree API
-    const orderData = {
-      order_id: orderId,
-      order_amount: depositAmount,
-      order_currency: "INR",
-      customer_details: {
-        customer_id: userId,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone
-      },
-      order_meta: {
-        return_url: `${cashfreeConfig.returnUrl}?order_id=${orderId}&booking_id=${bookingId}`,
-        notify_url: cashfreeConfig.notifyUrl
+    // Prepare payload for PhonePe API
+    const payload = {
+      merchantId: phonepeConfig.merchantId,
+      merchantTransactionId: merchantTransactionId,
+      merchantUserId: userId,
+      amount: depositAmount * 100, // Amount in paise
+      redirectUrl: `${phonepeConfig.redirectUrl}?transaction_id=${merchantTransactionId}&booking_id=${bookingId}`,
+      redirectMode: "REDIRECT",
+      callbackUrl: `${phonepeConfig.callbackUrl}?booking_id=${bookingId}`,
+      mobileNumber: customerPhone,
+      paymentInstrument: {
+        type: "PAY_PAGE"
       }
     };
 
-    console.log("Sending order data to Cashfree:", orderData);
+    // Encode payload to Base64
+    const base64Payload = encodePayload(payload);
 
-    // Create order in Cashfree
-    const response = await fetch(cashfreeConfig.endpoints.createOrder, {
+    // Generate X-VERIFY header
+    const xVerifyHeader = generateXVerifyHeader(base64Payload);
+
+    console.log("Sending payload to PhonePe:", {
+      merchantId: payload.merchantId,
+      merchantTransactionId: payload.merchantTransactionId,
+      amount: payload.amount / 100, // Convert back to rupees for logging
+      redirectUrl: payload.redirectUrl,
+      callbackUrl: payload.callbackUrl
+    });
+
+    // Make API call to PhonePe
+    const response = await fetch(phonepeConfig.endpoints.paymentApi, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'x-api-version': '2022-09-01',
-        'x-client-id': cashfreeConfig.appId,
-        'x-client-secret': cashfreeConfig.secretKey
+        'X-VERIFY': xVerifyHeader
       },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify({
+        request: base64Payload
+      })
     });
 
     // Get response status and body
-    const status = response.status;
     const data = await response.json();
-    console.log(`Cashfree API response (${status}):`, data);
+    console.log(`PhonePe API response:`, data);
 
-    if (data.cf_order_id || data.payment_session_id) {
-      // Order created successfully
-      console.log(`Payment initiated - Order ID: ${orderId}, CF Order ID: ${data.cf_order_id || data.payment_session_id}`);
+    if (data.success) {
+      // Payment initiation successful
+      console.log(`Payment initiated - Transaction ID: ${merchantTransactionId}`);
       
-      // Create payment URL
-      const paymentUrl = `${cashfreeConfig.endpoints.paymentUrl}?order_id=${orderId}&order_token=${data.payment_session_id || data.order_token}`;
-      
-      // Return payment URL and order details
+      // Return payment URL and transaction details
       return NextResponse.json({
         success: true,
-        paymentUrl: data.payment_link || paymentUrl,
-        orderId: orderId,
-        cfOrderId: data.cf_order_id || data.payment_session_id
+        paymentUrl: data.data.instrumentResponse.redirectInfo.url,
+        transactionId: merchantTransactionId,
+        phonepeTransactionId: data.data.transactionId
       });
     } else {
-      // Order creation failed
-      console.error('Cashfree payment initiation failed:', data);
+      // Payment initiation failed
+      console.error('PhonePe payment initiation failed:', data);
       return NextResponse.json({
         success: false,
         message: data.message || 'Payment initiation failed',
@@ -151,7 +153,7 @@ export async function POST(request) {
       }, { status: 400 });
     }
   } catch (error) {
-    console.error('Error initiating Cashfree payment:', error);
+    console.error('Error initiating PhonePe payment:', error);
     return NextResponse.json({
       success: false,
       message: 'Internal server error during payment initiation',

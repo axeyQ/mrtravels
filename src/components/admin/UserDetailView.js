@@ -86,16 +86,6 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
           >
             Bookings
           </button>
-          <button
-            className={`px-4 py-2 font-medium text-sm ${
-              activeTab === 'activity'
-                ? 'border-b-2 border-primary text-primary'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            onClick={() => setActiveTab('activity')}
-          >
-            Activity Log
-          </button>
         </div>
         
         {/* Content */}
@@ -345,15 +335,6 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
                   <p className="text-gray-500">No bookings found for this user.</p>
                 </div>
               )}
-            </div>
-          )}
-          
-          {activeTab === 'activity' && (
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Activity Log</h3>
-              <div className="bg-gray-50 p-4 rounded text-center">
-                <p className="text-gray-500">User activity tracking is not implemented yet.</p>
-              </div>
             </div>
           )}
         </div>
