@@ -1,7 +1,7 @@
 import BikeListingPage from '@/components/dashboard/BikeListingPage';
 
 export const metadata = {
-  title: 'Available Bikes - Bike Booking App',
+  title: 'Available Bikes - ZipBikes',
   description: 'Browse and book from our selection of bikes',
 };
 

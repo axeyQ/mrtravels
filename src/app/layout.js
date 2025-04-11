@@ -9,7 +9,7 @@ import UserDataSync from '../components/UserDataSync'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata = {
-  title: 'Bike Booking App',
+  title: 'ZipBikes by MR Travels and Rental Services',
   description: 'Book bikes easily with our user-friendly application',
 }
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import AnimatedHero from '../components/shared/AnimatedHero';
+import AnimatedHero from '@/components/shared/AnimatedHero';
 
 export default function Home() {
   return (

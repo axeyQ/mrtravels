@@ -1,7 +1,7 @@
 // src/components/shared/Footer.jsx
 'use client';
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, ChevronDown } from 'lucide-react';
+import { Facebook, Instagram, Twitter, Mail, Phone, MapPin, ChevronDown, Github, Linkedin, Globe } from 'lucide-react';
 import { useState } from 'react';
 
 export default function Footer() {
@@ -26,7 +26,7 @@ export default function Footer() {
             onClick={() => toggleSection('company')}
             className="flex w-full justify-between items-center p-4"
           >
-            <span className="font-semibold">About BikeFlix</span>
+            <span className="font-semibold">About ZipBikes</span>
             <ChevronDown 
               className={`h-5 w-5 text-gray-500 transition-transform ${
                 expandedSection === 'company' ? 'rotate-180' : ''
@@ -37,7 +37,7 @@ export default function Footer() {
           {expandedSection === 'company' && (
             <div className="px-4 pb-4">
               <p className="text-sm text-gray-500 mb-4">
-                BikeFlix offers convenient bike rentals for your daily commute or adventure. 
+                ZipBikes offers convenient bike rentals for your daily commute or adventure. 
                 Book bikes easily through our platform.
               </p>
               <div className="flex flex-col space-y-2 text-sm text-gray-500">
@@ -77,17 +77,19 @@ export default function Footer() {
               <Link href="/" className="text-sm text-gray-500 hover:text-primary">
                 Home
               </Link>
-              <Link href="/bikes" className="text-sm text-gray-500 hover:text-primary">
-                Bikes
+              <Link href="/terms" className="text-sm text-gray-500 hover:text-primary">
+                Terms & Conditions
               </Link>
-              <Link href="/bookings" className="text-sm text-gray-500 hover:text-primary">
-                My Bookings
-              </Link>
+             
               <Link href="/contact" className="text-sm text-gray-500 hover:text-primary">
                 Contact Us
               </Link>
-              <Link href="/terms" className="text-sm text-gray-500 hover:text-primary">
-                Terms & Conditions
+              
+              <Link href="/privacy" className="text-sm text-gray-500 hover:text-primary">
+                Privacy Policy
+              </Link> 
+              <Link href="/bikes" className="text-sm text-gray-500 hover:text-primary">
+                Bikes
               </Link>
               <Link href="/refund-policy" className="text-sm text-gray-500 hover:text-primary">
                 Refund Policy
@@ -122,18 +124,18 @@ export default function Footer() {
         
         {/* Social Links */}
         <div className="p-4 flex justify-center space-x-6">
-          <Link href="#" className="text-gray-400 hover:text-blue-600">
-            <span className="sr-only">Facebook</span>
-            <Facebook className="h-6 w-6" />
-          </Link>
-          <Link href="#" className="text-gray-400 hover:text-pink-600">
-            <span className="sr-only">Instagram</span>
-            <Instagram className="h-6 w-6" />
-          </Link>
-          <Link href="#" className="text-gray-400 hover:text-blue-400">
-            <span className="sr-only">Twitter</span>
-            <Twitter className="h-6 w-6" />
-          </Link>
+        <Link href="https://github.com/axeyQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-800">
+    <span className="sr-only">GitHub</span>
+    <Github className="h-6 w-6" />
+  </Link>
+  <Link href="https://linkedin.com/in/your-linkedin-profile" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-700">
+    <span className="sr-only">LinkedIn</span>
+    <Linkedin className="h-6 w-6" />
+  </Link>
+  <Link href="https://axeyqs.vercel.app" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-600">
+    <span className="sr-only">Portfolio</span>
+    <Globe className="h-6 w-6" />
+  </Link>
         </div>
       </div>
       
@@ -142,15 +144,15 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-2">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">About BikeFlix</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">About ZipBikes</h3>
             <p className="text-gray-500 mb-4">
-              BikeFlix offers convenient bike rentals for your daily commute or adventure. 
+              ZipBikes offers convenient bike rentals for your daily commute or adventure. 
               Book bikes easily through our platform and enjoy a hassle-free riding experience.
             </p>
             <div className="space-y-2 text-gray-500">
               <div className="flex items-center">
                 <Phone className="h-4 w-4 mr-2 text-primary" />
-                <span>+91 8982611817, +91 8120291777</span>
+                <span>+91 7909611817</span>
               </div>
               <div className="flex items-center">
                 <Mail className="h-4 w-4 mr-2 text-primary" />
@@ -222,29 +224,29 @@ export default function Footer() {
         
         <div className="mt-8 pt-8 border-t flex flex-col md:flex-row justify-between items-center">
           <p className="text-center text-xs leading-5 text-gray-500">
-            &copy; {new Date().getFullYear()} BikeFlix. All rights reserved.
+            &copy; {new Date().getFullYear()} ZipBikes. All rights reserved.
           </p>
           
           <div className="flex justify-center space-x-6 mt-4 md:mt-0">
-            <Link href="#" className="text-gray-400 hover:text-blue-600">
-              <span className="sr-only">Facebook</span>
-              <Facebook className="h-6 w-6" />
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-pink-600">
-              <span className="sr-only">Instagram</span>
-              <Instagram className="h-6 w-6" />
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-blue-400">
-              <span className="sr-only">Twitter</span>
-              <Twitter className="h-6 w-6" />
-            </Link>
-          </div>
+  <Link href="https://github.com/axeyQ" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-800">
+    <span className="sr-only">GitHub</span>
+    <Github className="h-6 w-6" />
+  </Link>
+  <Link href="https://linkedin.com/in/your-linkedin-profile" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-700">
+    <span className="sr-only">LinkedIn</span>
+    <Linkedin className="h-6 w-6" />
+  </Link>
+  <Link href="https://your-portfolio-website.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-teal-600">
+    <span className="sr-only">Portfolio</span>
+    <Globe className="h-6 w-6" />
+  </Link>
+</div>
         </div>
       </div>
       
       {/* Copyright - Mobile */}
       <div className="md:hidden py-4 text-center text-xs text-gray-500">
-        &copy; {new Date().getFullYear()} BikeFlix. All rights reserved.
+        &copy; {new Date().getFullYear()} ZipBikes. by MR Travels and Rental Services | All rights reserved
       </div>
     </footer>
   );

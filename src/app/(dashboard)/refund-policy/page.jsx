@@ -2,7 +2,7 @@
 import RefundPage from '@/components/pages/RefundPage';
 
 export const metadata = {
-  title: 'Refund and Cancellation Policy - BikeFlix',
+  title: 'Refund and Cancellation Policy - ZipBikes',
   description: 'Learn about our refund and cancellation policies for bike bookings',
 };
 

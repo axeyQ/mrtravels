@@ -35,10 +35,10 @@ export default function AnimatedHero() {
           Browse Bikes
         </Link>
         <Link
-          href="#how-it-works"
+          href="/terms"
           className="text-sm font-semibold leading-6 text-gray-900"
         >
-          Learn more <span aria-hidden="true">→</span>
+          Terms of Use <span aria-hidden="true">→</span>
         </Link>
       </motion.div>
     </div>

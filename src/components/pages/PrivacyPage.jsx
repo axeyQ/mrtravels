@@ -24,7 +24,7 @@ Last updated: April 1, 2025
     <div className="prose prose-primary max-w-none">
       <h2 className="text-xl font-bold mb-4">1. Introduction</h2>
       <p>
-        Welcome to BikeFlix. This Privacy Policy describes how we collect, use, 
+        Welcome to ZipBikes. This Privacy Policy describes how we collect, use, 
         protect, and share your personal information when you use our bike rental 
         platform, including our website and mobile application.
       </p>
@@ -37,41 +37,37 @@ Last updated: April 1, 2025
       <p>We collect various types of information to provide and improve our services:</p>
       <ul className="ml-4">
         <li>
-          <strong>Personal Information:</strong> Name, contact details, driver&apos;s 
+          <strong>a. Personal Information:</strong> Name, contact details, driver&apos;s 
           license number, identification documents, profile picture
         </li>
         <li>
-          <strong>Contact Information:</strong> Phone number, email address
+          <strong>b. Contact Information:</strong> Phone number
         </li>
         <li>
-          <strong>Location Data:</strong> GPS location when using our services
+          <strong>c. Device Information:</strong> IP address, device type, browser type
         </li>
         <li>
-          <strong>Device Information:</strong> IP address, device type, browser type
-        </li>
-        <li>
-          <strong>Usage Information:</strong> Booking history, interactions with our platform
+          <strong>d. Usage Information:</strong> Booking history, interactions with our platform
         </li>
       </ul>
 
       <h2 className="text-xl font-bold mb-4 mt-6">3. How We Use Your Information</h2>
       <p>We use your information to:</p>
       <ul className="ml-4">
-        <li>Process and manage bike rentals</li>
-        <li>Verify your identity and eligibility to rent vehicles</li>
-        <li>Communicate with you about bookings and services</li>
-        <li>Improve our platform and customer experience</li>
-        <li>Comply with legal and regulatory requirements</li>
-        <li>Prevent fraud and ensure platform safety</li>
+        <li>a. Process and manage bike rentals</li>
+        <li>b. Verify your identity and eligibility to rent vehicles</li>
+        <li>c. Communicate with you about bookings and services</li>
+        <li>d. Improve our platform and customer experience</li>
+        <li>e. Comply with legal and regulatory requirements</li>
+        <li>f. Prevent fraud and ensure platform safety</li>
       </ul>
 
       <h2 className="text-xl font-bold mb-4 mt-6">4. Information Sharing</h2>
       <p>We may share your information with:</p>
       <ul className="ml-4">
-        <li>Service providers and business partners</li>
-        <li>Law enforcement agencies when required by law</li>
-        <li>Bike owners for rental purposes</li>
-        <li>Payment processors for transaction handling</li>
+        <li>a. Service providers and business partners</li>
+        <li>b. Law enforcement agencies when required by law</li>
+        <li>c. Payment processors for transaction handling</li>
       </ul>
       <p>
         We do not sell your personal information to third parties. 
@@ -81,20 +77,20 @@ Last updated: April 1, 2025
       <h2 className="text-xl font-bold mb-4 mt-6">5. Data Protection</h2>
       <p>We implement appropriate technical and organizational measures to protect your data:</p>
       <ul className="ml-4">
-        <li>Encryption of sensitive information</li>
-        <li>Secure storage systems</li>
-        <li>Access controls and authentication measures</li>
-        <li>Regular security audits and updates</li>
+        <li>a. Encryption of sensitive information</li>
+        <li>b. Secure storage systems</li>
+        <li>c. Access controls and authentication measures</li>
+        <li>d. Regular security audits and updates</li>
       </ul>
 
       <h2 className="text-xl font-bold mb-4 mt-6">6. Your Rights</h2>
       <p>You have the right to:</p>
       <ul className="ml-4">
-        <li>Access your personal information</li>
-        <li>Request correction of inaccurate data</li>
-        <li>Request deletion of your account and data</li>
-        <li>Opt-out of marketing communications</li>
-        <li>Restrict or object to data processing</li>
+        <li>a. Access your personal information</li>
+        <li>b. Request correction of inaccurate data</li>
+        <li>c. Request deletion of your account and data</li>
+        <li>d. Opt-out of marketing communications</li>
+        <li>e. Restrict or object to data processing</li>
       </ul>
 
       <h2 className="text-xl font-bold mb-4 mt-6">7. Cookies and Tracking</h2>
@@ -131,13 +127,13 @@ Last updated: April 1, 2025
         If you have any questions or concerns about this Privacy Policy, please contact us at:
       </p>
       <p>
-        <strong>BikeFlix</strong><br />
+        <strong>ZipBikes</strong><br />
         WARD NO 3, NEAR IISER COLLEGE, BOURI, HUZUR,<br />
         SHOP NO 2, 462030, Bhopal,<br />
         Madhya Pradesh, PIN: 462030,<br />
         India<br />
         Email: mrtravels1817@gmail.com<br />
-        Phone: +91 8982611817, +91 8120291777
+        Phone: +91 7909611817
       </p>
     </div>
   </motion.div>

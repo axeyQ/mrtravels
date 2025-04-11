@@ -24,7 +24,7 @@ export default function TermsPage() {
         <div className="prose prose-primary max-w-none">
           <h2 className=' text-xl font-bold mb-4'>1. Introduction</h2>
           <p>
-            Welcome to BikeFlix. These Terms and Conditions govern your use of our website and services, 
+            Welcome to ZipBikes. These Terms and Conditions govern your use of our website and services, 
             including our mobile application, and the rental of vehicles through our platform. By accessing 
             our platform or using our services, you agree to be bound by these Terms and Conditions.
           </p>
@@ -36,7 +36,7 @@ export default function TermsPage() {
           <h2 className=' text-xl font-bold mb-4 mt-6'>2. Definitions</h2>
           <p>In these Terms and Conditions, unless the context requires otherwise:</p>
           <ul className='ml-4'>
-            <li>a. &quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot; refers to BikeFlix.</li>
+            <li>a. &quot;Company,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot; refers to ZipBikes.</li>
             <li>b. &quot;User,&quot; &quot;you,&quot; or &quot;your&quot; refers to any person who accesses or uses our platform or services.</li>
             <li>c. &quot;Platform&quot; refers to our website, web application, and any other online services we provide.</li>
             <li>d. &quot;Vehicle&quot; refers to any bike, moped, or other transportation device available for rental through our platform.</li>
@@ -157,7 +157,7 @@ export default function TermsPage() {
           <h2 className=' text-xl font-bold mb-4 mt-6'>11. Intellectual Property</h2>
           <p>
             All content on our platform, including text, graphics, logos, icons, images, audio clips, digital downloads, 
-            and software, is the property of BikeFlix or our licensors and is protected by copyright, trademark, and other 
+            and software, is the property of ZipBikes or our licensors and is protected by copyright, trademark, and other 
             intellectual property laws.
           </p>
           <p>
@@ -181,7 +181,7 @@ export default function TermsPage() {
           </p>
           <p>
             Our total liability for any claim arising out of or related to these Terms and Conditions shall not exceed 
-            the total amount you have paid to us in the 12 months preceding the claim.
+            the total amount you have paid to us in the one month preceding the claim.
           </p>
 
           <h2 className=' text-xl font-bold mb-4 mt-6'>13. Termination</h2>
@@ -222,13 +222,13 @@ export default function TermsPage() {
             If you have any questions or concerns about these Terms and Conditions, please contact us at:
           </p>
           <p>
-            <strong>BikeFlix</strong><br />
+            <strong>ZipBikes</strong><br />
             WARD NO 3, NEAR IISER COLLEGE, BOURI, HUZUR,<br/>
             SHOP NO 2, 462030, Bhopal,
             <br/>Madhya Pradesh, PIN: 462030,
             India<br />
             Email: mrtravels1817@gmail.com<br />
-            Phone: +91 8982611817, +91 8120291777
+            Phone: +91 7909611817
           </p>
         </div>
       </motion.div>

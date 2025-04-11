@@ -1,8 +1,8 @@
-// src/components/dashboard/BikeDetailPage.jsx
+// Modified src/components/dashboard/BikeDetailPage.jsx
 "use client";
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
-import { api } from '../../../convex/\_generated/api';
+import { api } from '../../../convex/_generated/api';
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -13,7 +13,7 @@ import TimeLimitedDatePicker from '../ui/TimeLimitedDatePicker';
 import EndTimePicker from '../ui/EndTimePicker';
 import { Label } from '../ui/label';
 import { calculateRentalPrice, getPriceBreakdown } from '@/lib/PricingCalculator';
-import { ChevronDown, Check, X, Clock } from 'lucide-react';
+import { ChevronDown, Check, X, Clock, AlertCircle } from 'lucide-react';
 
 export default function BikeDetailPage({ bikeId }) {
   const router = useRouter();
@@ -35,6 +35,12 @@ export default function BikeDetailPage({ bikeId }) {
   // Check if user profile is complete - only if user is signed in
   const isProfileComplete = useQuery(
     api.users.isProfileComplete,
+    isUserLoaded && isSignedIn ? { userId: user.id } : "skip"
+  );
+
+  // Check if user already has an active booking
+  const hasActiveBooking = useQuery(
+    api.bookings.userHasActiveBooking,
     isUserLoaded && isSignedIn ? { userId: user.id } : "skip"
   );
 
@@ -76,6 +82,13 @@ export default function BikeDetailPage({ bikeId }) {
     if (isProfileComplete === false) {
       toast.warning("Please complete your profile before booking");
       router.push(`/profile?redirect=/bikes/${bikeId}`);
+      return;
+    }
+
+    // Check if user already has an active booking
+    if (hasActiveBooking === true) {
+      toast.error("You already have an active booking. Please complete or cancel it before making a new booking.");
+      router.push('/bookings');
       return;
     }
 
@@ -190,7 +203,7 @@ export default function BikeDetailPage({ bikeId }) {
           {/* Mobile-optimized collapsible sections */}
           {bike.description !== "" ? (
             <div className="mt-4 border-t border-b py-3">
-              <button 
+              <button
                 onClick={() => setShowFeatures(!showFeatures)}
                 className="w-full flex justify-between items-center text-left"
               >
@@ -205,7 +218,7 @@ export default function BikeDetailPage({ bikeId }) {
           
           {bike.features && bike.features.length !== 0 ? (
             <div className="border-b py-3">
-              <button 
+              <button
                 onClick={() => setShowFeatures(!showFeatures)}
                 className="w-full flex justify-between items-center text-left"
               >
@@ -250,6 +263,7 @@ export default function BikeDetailPage({ bikeId }) {
                     </button>
                   </div>
                 )}
+
                 {/* Profile Completion Warning */}
                 {isSignedIn && isProfileComplete === false && (
                   <div className="bg-yellow-50 p-4 rounded-md mb-4">
@@ -265,151 +279,196 @@ export default function BikeDetailPage({ bikeId }) {
                     </p>
                   </div>
                 )}
-                {/* Booking information box */}
-                <div className="bg-blue-50 p-4 rounded-md mb-4">
-                  <h3 className="font-medium text-blue-800">Booking Information</h3>
-                  <p className="text-blue-700 mt-1 text-sm">
-                    Pay only ₹42 deposit now. Remaining balance will be paid after return.
-                  </p>
-                  <p className="text-blue-700 mt-1 text-sm">
-                    <strong>Note:</strong> You can only book for start times within the next 30 minutes.
-                  </p>
-                </div>
-
-                {/* Mobile-optimized time pickers */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <TimeLimitedDatePicker
-                    selectedDate={startDate}
-                    onChange={(date) => {
-                      setStartDate(date);
-                      // Ensure end date is at least 30 minutes after start date
-                      if (endDate < new Date(date.getTime() + 30 * 60 * 1000)) {
-                        setEndDate(new Date(date.getTime() + 30 * 60 * 1000));
-                      }
-                    }}
-                    label="Start Time"
-                    error={!isStartTimeValid() ? "Start time must be within the next 30 minutes" : null}
-                  />
-                  <EndTimePicker
-                    selectedDate={endDate}
-                    onChange={(date) => setEndDate(date)}
-                    startTime={startDate}
-                    label="End Time"
-                  />
-                </div>
-
-                {/* Availability indicator */}
-                {isCheckingAvailability ? (
-                  <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-blue-500 animate-spin" />
-                    <p className="text-blue-800 text-sm">Checking availability...</p>
-                  </div>
-                ) : !isReallyAvailable ? (
-                  <div className="bg-red-50 p-3 rounded-md mb-4 flex items-center">
-                    <X className="h-4 w-4 mr-2 text-red-500" />
-                    <p className="text-red-800 font-medium text-sm">
-                      {!bike.isAvailable
-                        ? "This bike is not available for booking."
-                        : availabilityInfo?.reason || "This bike is already booked for the selected time period"
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-green-50 p-3 rounded-md mb-4 flex items-center">
-                    <Check className="h-4 w-4 mr-2 text-green-500" />
-                    <p className="text-green-800 font-medium text-sm">
-                      This bike is available for booking during the selected time period!
-                    </p>
+                
+                {/* Active Booking Warning */}
+                {isSignedIn && hasActiveBooking === true && (
+                  <div className="bg-red-50 p-4 rounded-md mb-4">
+                    <h3 className="font-medium text-red-800">Active Booking Exists</h3>
+                    <div className="flex items-start mt-1">
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-700">
+                        You already have an active booking. You can only have one booking at a time.
+                        <button
+                          onClick={() => router.push('/bookings')}
+                          className="ml-2 text-red-800 font-medium underline"
+                        >
+                          View My Bookings
+                        </button>
+                      </p>
+                    </div>
                   </div>
                 )}
-
-                {/* Price breakdown with toggle for mobile */}
-                <div className="border-t border-gray-200 pt-4 mb-4">
-                  <button 
-                    onClick={() => setShowPricing(!showPricing)}
-                    className="w-full flex justify-between items-center text-left mb-2"
-                  >
-                    <h3 className="font-medium text-gray-800">Price Breakdown</h3>
-                    <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${showPricing ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {showPricing && startDate && endDate && bike ? (
-                    <div className="bg-gray-50 p-4 rounded-md">
-                      {(() => {
-                        const priceInfo = calculateRentalPrice(startDate, endDate, bike.pricePerHour);
-                        const breakdown = getPriceBreakdown(startDate, endDate, bike.pricePerHour);
-                        
-                        return (
-                          <>
-                            {/* Duration information */}
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Duration:</span>
-                              <span className="font-medium">{priceInfo.formattedDuration}</span>
-                            </div>
-                            
-                            {/* Breakdown of the price components */}
-                            {breakdown.map((item, index) => (
-                              <div key={index} className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-600">
-                                  {item.description} ({item.rate}):
-                                </span>
-                                <span className="font-medium">₹{item.amount}</span>
-                              </div>
-                            ))}
-                            
-                            {/* Total price */}
-                            <div className="flex justify-between mt-1 text-lg font-semibold border-t border-gray-200 pt-2">
-                              <span>Estimated total:</span>
-                              <span className="text-primary">₹{priceInfo.price}</span>
-                            </div>
-                            
-                            {/* Deposit information */}
-                            <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
-                              <span className="text-gray-800 font-medium">Deposit to pay now:</span>
-                              <span className="text-green-600 font-bold">₹42</span>
-                            </div>
-                            
-                            <div className="flex justify-between mt-1">
-                              <span className="text-gray-600">To pay after return:</span>
-                              <span className="font-medium">₹{Math.max(0, priceInfo.price - 40)}</span>
-                            </div>
-                            
-                            <div className="mt-2 text-xs text-gray-500">
-                              * ₹40 from deposit goes to bike owner, ₹2 is platform fee
-                            </div>
-                          </>
-                        );
-                      })()}
+                
+                {/* Only show booking options if user is signed in, has a complete profile, and doesn't have an active booking */}
+                {isSignedIn && isProfileComplete === true && hasActiveBooking !== true && (
+                  <>
+                    {/* Booking information box */}
+                    <div className="bg-blue-50 p-4 rounded-md mb-4">
+                      <h3 className="font-medium text-blue-800">Booking Information</h3>
+                      <p className="text-blue-700 mt-1 text-sm">
+                        Pay only ₹42 deposit now. Remaining balance will be paid after return.
+                      </p>
+                      <p className="text-blue-700 mt-1 text-sm">
+                        <strong>Note:</strong> You can only book for start times within the next 30 minutes.
+                      </p>
                     </div>
-                  ) : (
-                    !showPricing && (
-                      <div className="flex justify-between text-sm mb-3 px-1">
-                        <span className="text-gray-600">Deposit:</span>
-                        <span className="font-bold">₹42</span>
-                      </div>
-                    )
-                  )}
-                </div>
 
-                <button
-                  onClick={handleOpenTermsModal}
-                  disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid() || (isSignedIn && isProfileComplete === false) || !isSignedIn}
-                  className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                    ${isReallyAvailable && isStartTimeValid() && (isSignedIn ? isProfileComplete !== false : false)
-                      ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
-                      : 'bg-gray-400 cursor-not-allowed'}`}
-                >
-                  {isBookingLoading
-                    ? "Processing..."
-                    : !isSignedIn
-                      ? "Sign In to Book"
+                    {/* Mobile-optimized time pickers */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <TimeLimitedDatePicker
+                        selectedDate={startDate}
+                        onChange={(date) => {
+                          setStartDate(date);
+                          // Ensure end date is at least 30 minutes after start date
+                          if (endDate < new Date(date.getTime() + 30 * 60 * 1000)) {
+                            setEndDate(new Date(date.getTime() + 30 * 60 * 1000));
+                          }
+                        }}
+                        label="Start Time"
+                        error={!isStartTimeValid() ? "Start time must be within the next 30 minutes" : null}
+                      />
+                      <EndTimePicker
+                        selectedDate={endDate}
+                        onChange={(date) => setEndDate(date)}
+                        startTime={startDate}
+                        label="End Time"
+                      />
+                    </div>
+
+                    {/* Availability indicator */}
+                    {isCheckingAvailability ? (
+                      <div className="bg-blue-50 p-3 rounded-md mb-4 animate-pulse flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-blue-500 animate-spin" />
+                        <p className="text-blue-800 text-sm">Checking availability...</p>
+                      </div>
+                    ) : !isReallyAvailable ? (
+                      <div className="bg-red-50 p-3 rounded-md mb-4 flex items-center">
+                        <X className="h-4 w-4 mr-2 text-red-500" />
+                        <p className="text-red-800 font-medium text-sm">
+                          {!bike.isAvailable
+                            ? "This bike is not available for booking."
+                            : availabilityInfo?.reason || "This bike is already booked for the selected time period"
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-green-50 p-3 rounded-md mb-4 flex items-center">
+                        <Check className="h-4 w-4 mr-2 text-green-500" />
+                        <p className="text-green-800 font-medium text-sm">
+                          This bike is available for booking during the selected time period!
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Price breakdown with toggle for mobile */}
+                    <div className="border-t border-gray-200 pt-4 mb-4">
+                      <button
+                        onClick={() => setShowPricing(!showPricing)}
+                        className="w-full flex justify-between items-center text-left mb-2"
+                      >
+                        <h3 className="font-medium text-gray-800">Price Breakdown</h3>
+                        <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${showPricing ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showPricing && startDate && endDate && bike ? (
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          {(() => {
+                            const priceInfo = calculateRentalPrice(startDate, endDate, bike.pricePerHour);
+                            const breakdown = getPriceBreakdown(startDate, endDate, bike.pricePerHour);
+                            
+                            return (
+                              <>
+                                {/* Duration information */}
+                                <div className="flex justify-between text-sm mb-1">
+                                  <span className="text-gray-600">Duration:</span>
+                                  <span className="font-medium">{priceInfo.formattedDuration}</span>
+                                </div>
+                                
+                                {/* Breakdown of the price components */}
+                                {breakdown.map((item, index) => (
+                                  <div key={index} className="flex justify-between text-sm mb-1">
+                                    <span className="text-gray-600">
+                                      {item.description} ({item.rate}):
+                                    </span>
+                                    <span className="font-medium">₹{item.amount}</span>
+                                  </div>
+                                ))}
+                                
+                                {/* Total price */}
+                                <div className="flex justify-between mt-1 text-lg font-semibold border-t border-gray-200 pt-2">
+                                  <span>Estimated total:</span>
+                                  <span className="text-primary">₹{priceInfo.price}</span>
+                                </div>
+                                
+                                {/* Deposit information */}
+                                <div className="flex justify-between mt-3 pt-3 border-t border-gray-200">
+                                  <span className="text-gray-800 font-medium">Deposit to pay now:</span>
+                                  <span className="text-green-600 font-bold">₹42</span>
+                                </div>
+                                
+                                <div className="flex justify-between mt-1">
+                                  <span className="text-gray-600">To pay after return:</span>
+                                  <span className="font-medium">₹{Math.max(0, priceInfo.price - 40)}</span>
+                                </div>
+                                
+                                <div className="mt-2 text-xs text-gray-500">
+                                  * ₹40 from deposit goes to bike owner, ₹2 is platform fee
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        !showPricing && (
+                          <div className="flex justify-between text-sm mb-3 px-1">
+                            <span className="text-gray-600">Deposit:</span>
+                            <span className="font-bold">₹42</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Booking button - different states based on user status */}
+                {!isSignedIn ? (
+                  <button
+                    onClick={() => router.push(`/sign-in?redirect=/bikes/${bikeId}`)}
+                    className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  >
+                    Sign In to Book
+                  </button>
+                ) : isProfileComplete === false ? (
+                  <button
+                    onClick={() => router.push(`/profile?redirect=/bikes/${bikeId}`)}
+                    className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                  >
+                    Complete Profile to Book
+                  </button>
+                ) : hasActiveBooking === true ? (
+                  <button
+                    onClick={() => router.push('/bookings')}
+                    className="w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    View My Active Booking
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleOpenTermsModal}
+                    disabled={isBookingLoading || !isReallyAvailable || !isStartTimeValid()}
+                    className={`w-full py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white 
+                      ${isReallyAvailable && isStartTimeValid()
+                        ? 'bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary'
+                        : 'bg-gray-400 cursor-not-allowed'}`}
+                  >
+                    {isBookingLoading
+                      ? "Processing..."
                       : isReallyAvailable && isStartTimeValid()
-                        ? isProfileComplete === false
-                          ? "Complete Profile to Book"
-                          : "Book & Pay ₹42 Deposit"
+                        ? "Book & Pay ₹42 Deposit"
                         : "Unavailable"
-                  }
-                </button>
+                    }
+                  </button>
+                )}
               </div>
             ) : (
               <p className="mt-2 text-red-600">This vehicle is currently not available for booking.</p>

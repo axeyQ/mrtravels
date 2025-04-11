@@ -40,8 +40,8 @@ export default function Navbar() {
           <div className="flex h-16 justify-between">  
             <div className="flex">  
               <div className="flex flex-shrink-0 items-center">  
-                <Link href="/" className="text-xl font-bold text-primary">  
-                  BikeFlix  
+                <Link href="/" className="text-xl text-red-400 font-bold text-primary">  
+                  Zip<span className=' font-thin text-black'>Bikes</span> 
                 </Link>  
               </div>  
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">  

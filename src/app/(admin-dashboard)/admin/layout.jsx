@@ -4,7 +4,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminGuard from "@/components/admin/AdminGuard";
 
 export const metadata = {
-  title: 'Admin Dashboard - Bike Booking App',
+  title: 'Admin Dashboard - ZipBikes',
   description: 'Manage bikes, bookings, and users',
 };
 

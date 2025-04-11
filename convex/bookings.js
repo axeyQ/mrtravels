@@ -2,6 +2,65 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// NEW FUNCTION: Check if a user has any active bookings
+export const userHasActiveBooking = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const { userId } = args;
+    
+    // Find any bookings with status "pending" or "confirmed"
+    const activeBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .filter(q => 
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "confirmed")
+        )
+      )
+      .collect();
+    
+    return activeBookings.length > 0;
+  },
+});
+
+// NEW FUNCTION: Get a user's active booking details (for display purposes)
+export const getUserActiveBooking = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const { userId } = args;
+    
+    // Find the active booking
+    const activeBooking = await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .filter(q => 
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "confirmed")
+        )
+      )
+      .first();
+    
+    if (!activeBooking) {
+      return null;
+    }
+    
+    // Fetch the related bike info
+    const bike = activeBooking ? await ctx.db.get(activeBooking.bikeId) : null;
+    
+    return {
+      booking: activeBooking,
+      bike: bike ? {
+        id: bike._id,
+        name: bike.name,
+        imageUrl: bike.imageUrl,
+        type: bike.type
+      } : null
+    };
+  },
+});
+
 // Get all bookings (admin only)
 export const getAllBookings = query({
   args: { adminId: v.string() },
@@ -162,7 +221,7 @@ ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}`
   },
 });
 
-// Create a booking
+// Create a booking - UPDATED with "one booking at a time" check
 export const createBooking = mutation({
   args: {
     bikeId: v.id("bikes"),
@@ -176,6 +235,23 @@ export const createBooking = mutation({
   },
   handler: async (ctx, args) => {
     const { bikeId, userId, userName, userPhone, startTime, endTime, totalPrice } = args;
+    
+    // NEW: Check if user already has an active booking
+    const activeBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .filter(q => 
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "confirmed")
+        )
+      )
+      .collect();
+    
+    if (activeBookings.length > 0) {
+      throw new Error("You already have an active booking. Please complete or cancel it before making a new booking.");
+    }
+    
     // Check if bike exists
     const bike = await ctx.db.get(bikeId);
     if (!bike) {
@@ -497,6 +573,24 @@ export const createCustomBooking = mutation({
     if (!user) {
       throw new Error("User not found");
     }
+    
+    // NEW: Check if user already has an active booking (but allow admins to override)
+    const activeBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .filter(q => 
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "confirmed")
+        )
+      )
+      .collect();
+    
+    if (activeBookings.length > 0) {
+      // For admin bookings, just provide a warning but still allow it
+      console.warn(`Admin creating a booking for user ${userId} who already has ${activeBookings.length} active bookings`);
+    }
+    
     // Create booking with admin flag
     const bookingId = await ctx.db.insert("bookings", {
       bikeId,

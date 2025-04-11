@@ -25,7 +25,7 @@ export default function RefundPage() {
           <h2 className=' text-xl font-bold mb-4'>1. Introduction</h2>
           <p>
             This Refund and Cancellation Policy outlines the terms and conditions for refunds and cancellations 
-            of bookings made through the BikeFlix platform. By making a booking through our platform, you agree 
+            of bookings made through the ZipBikes platform. By making a booking through our platform, you agree 
             to be bound by this policy.
           </p>
           <p>
@@ -76,7 +76,7 @@ export default function RefundPage() {
             </li>
           </ul>
           
-          <h3 className=' text-md font-semibold  mb-4 mt-6'><em>4.2 Cancellation by BikeFlix</em></h3>
+          <h3 className=' text-md font-semibold  mb-4 mt-6'><em>4.2 Cancellation by ZipBikes</em></h3>
           <p>
             In rare circumstances, we may need to cancel your booking due to unforeseen circumstances, such as 
             vehicle damage, maintenance issues, or weather conditions that make riding unsafe. In such cases:
@@ -220,13 +220,13 @@ export default function RefundPage() {
             If you have any questions or concerns about this Refund and Cancellation Policy, please contact us at:
           </p>
           <p>
-            <strong>BikeFlix</strong><br />
+            <strong>ZipBikes</strong><br />
             WARD NO 3, NEAR IISER COLLEGE, BOURI, HUZUR,<br/>
             SHOP NO 2, 462030, Bhopal,
             <br/>Madhya Pradesh, PIN: 462030,
             India<br />
             Email: mrtravels1817@gmail.com<br />
-            Phone: +91 8982611817, +91 8120291777
+            Phone: +91 7909611817
           </p>
 
           <h2 className=' text-xl font-bold mb-4 mt-6'>12. Examples of Refund Calculations</h2>

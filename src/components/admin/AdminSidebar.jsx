@@ -66,7 +66,7 @@ export default function AdminSidebar() {
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <div className="px-4 py-5 flex flex-col flex-grow">
             <div className="flex items-center flex-shrink-0 px-2">
-              <span className="text-xl font-bold text-primary">BikeFlix Admin</span>
+              <span className="text-xl font-bold text-primary">ZipBikes Admin</span>
             </div>
             <div className="mt-8 flex-1 flex flex-col">
               <nav className="flex-1 space-y-1">
@@ -141,7 +141,7 @@ export default function AdminSidebar() {
             }`}
           >
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <span className="text-xl font-bold text-primary">BikeFlix Admin</span>
+              <span className="text-xl font-bold text-primary">ZipBikes Admin</span>
               <button 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-gray-500"

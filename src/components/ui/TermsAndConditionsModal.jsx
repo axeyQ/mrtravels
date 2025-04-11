@@ -73,80 +73,83 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
         <div className="overflow-y-auto flex-grow px-4 sm:px-6 py-4">  
           <div className="prose prose-sm max-w-none">  
             <section id="section-1">  
-              <h3>1. Rental Agreement</h3>  
+              <h3 className='font-bold'>1. Rental Agreement</h3>  
               <p>  
-                This Rental Agreement constitutes a contract between you (the &quot;Renter&quot;) and BikeFlix (the &quot;Company&quot;),  
+                This Rental Agreement constitutes a contract between you (the &quot;Renter&quot;) and ZipBikes (the &quot;Company&quot;),  
                 governing the rental of vehicles through our platform.  
               </p>  
             </section>  
              
             <section id="section-2">  
-              <h3>2. Eligibility</h3>  
+              <h3 className=' font-bold mt-4'>2. Eligibility</h3>  
               <p>  
                 To rent a vehicle, you must:  
               </p>  
-              <ul>  
-                <li>Be at least 18 years of age</li>  
-                <li>Possess a valid driver&apos;s license</li>  
-                <li>Provide accurate personal information</li>  
-                <li>Have a valid payment method</li>  
+              <ul className='ml-4'>  
+                <li>a. Be at least 18 years of age</li>  
+                <li>b. Possess a valid driver&apos;s license</li>  
+                <li>c. Provide accurate personal information</li>  
+                <li>d. Have a valid payment method</li>  
               </ul>  
             </section>  
              
             <section id="section-3">  
-              <h3>3. Vehicle Use</h3>  
+              <h3 className=' font-bold mt-4'>3. Vehicle Use</h3>  
               <p>  
                 The Renter agrees to:  
               </p>  
-              <ul>  
-                <li>Use the vehicle only for personal transportation</li>  
-                <li>Not use the vehicle for any illegal activities</li>  
-                <li>Not exceed passenger or weight limitations</li>  
-                <li>Not modify or alter the vehicle in any way</li>  
-                <li>Return the vehicle in the same condition as received</li>  
+              <ul className='ml-4'>  
+                <li>a. Use the vehicle only for personal transportation</li>  
+                <li>b. Not use the vehicle for any illegal activities</li>  
+                <li>c. Not exceed passenger or weight limitations</li>  
+                <li>d. Not modify or alter the vehicle in any way</li>  
+                <li>e. Return the vehicle in the same condition as received</li>  
+                <li>f. If three people are found riding a vehicle then Rs 2000 will be charged and vehicle will be seized on the spot.</li>  
+                <li>g. After store closing (i.e 10PM), if the vehicle is still in your possession than double charges will be applied i.e Rs 160 per hour. </li>  
+
               </ul>  
             </section>  
              
             <section id="section-4">  
-              <h3>4. Payment Terms</h3>  
+              <h3 className=' font-bold mt-4'>4. Payment Terms</h3>  
               <p>  
                 The Renter understands and agrees:  
               </p>  
-              <ul>  
-                <li>To pay the deposit amount at the time of booking</li>  
-                <li>To pay the remaining balance upon return of the vehicle</li>  
-                <li>To be responsible for any additional charges due to late returns or damages</li>  
-                <li>That cancellation fees may apply as per our cancellation policy</li>  
+              <ul className='ml-4'>  
+                <li>a. To pay the deposit amount at the time of booking</li>  
+                <li>b. To pay the remaining balance upon return of the vehicle</li>  
+                <li>c. To be responsible for any additional charges due to late returns or damages</li>  
+                <li>d. That cancellation fees may apply as per our cancellation policy</li>  
               </ul>  
             </section>  
              
             <section id="section-5">  
-              <h3>5. Insurance and Liability</h3>  
+              <h3 className=' font-bold mt-4'>5. Insurance and Liability</h3>  
               <p>  
                 The Renter acknowledges:  
               </p>  
-              <ul>  
-                <li>They are responsible for any damage to the vehicle during the rental period</li>  
-                <li>Basic insurance is included in the rental price</li>  
-                <li>The Renter is responsible for any deductible amounts</li>  
-                <li>Personal property in the vehicle is not covered by our insurance</li>  
+              <ul className='ml-4'>  
+                <li>a. They are responsible for any damage to the vehicle during the rental period</li>  
+                <li>b. Basic insurance is included in the rental price</li>  
+                <li>c. The Renter is responsible for any deductible amounts</li>  
+                <li>d. Personal property in the vehicle is not covered by our insurance</li>  
               </ul>  
             </section>  
              
             <section id="section-6">  
-              <h3>6. Cancellation Policy</h3>  
+              <h3 className=' font-bold mt-4'>6. Cancellation Policy</h3>  
               <p>  
                 Cancellations made:  
               </p>  
-              <ul>  
-                <li>More than 24 hours before pickup: Full refund</li>  
-                <li>Less than 24 hours before pickup: No refund of deposit</li>  
-                <li>Failure to pick up: No refund</li>  
+              <ul className='ml-4'>  
+                <li>a. More than 15 minutes before pickup: Full refund of deposit excluding platform fee</li>  
+                <li>b. Less than 15 minutes before pickup: No refund of deposit</li>  
+                <li>c. Failure to pick up: No refund</li>  
               </ul>  
             </section>  
              
             <section id="section-7">  
-              <h3>7. Privacy Policy</h3>  
+              <h3 className=' font-bold mt-4'>7. Privacy Policy</h3>  
               <p>  
                 The Company collects and processes personal data in accordance with our Privacy Policy,  
                 which the Renter acknowledges having read and understood.  
@@ -154,7 +157,7 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
             </section>  
              
             <section id="section-8">  
-              <h3>8. Dispute Resolution</h3>  
+              <h3 className=' font-bold mt-4'>8. Dispute Resolution</h3>  
               <p>  
                 Any disputes arising from this agreement shall be resolved through arbitration  
                 in accordance with the laws of the jurisdiction where the Company is registered.  
@@ -162,7 +165,7 @@ export default function TermsAndConditionsModal({ isOpen, onClose, onAccept }) {
             </section>  
              
             <section id="section-9">  
-              <h3>9. Term and Termination</h3>  
+              <h3 className=' font-bold mt-4'>9. Term and Termination</h3>  
               <p>  
                 This agreement is effective upon booking and ends upon the return of the vehicle,  
                 provided all payments have been made and no damages are found.  
