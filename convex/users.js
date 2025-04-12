@@ -74,7 +74,7 @@ export const getUser = query({
 
 // New function to check if license number already exists
 export const checkLicenseExists = query({
-  args: { 
+  args: {
     licenseNumber: v.string(),
     currentUserId: v.string() // Exclude current user from check
   },
@@ -84,14 +84,26 @@ export const checkLicenseExists = query({
       return false;
     }
     
-    // Find users with this license number
+    // Validate license format - only alphanumeric allowed
+    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+    if (!alphanumericRegex.test(args.licenseNumber.trim())) {
+      throw new Error("License number must contain only letters and numbers");
+    }
+    
+    // Convert to uppercase for case-insensitive comparison
+    const normalizedLicense = args.licenseNumber.trim().toUpperCase();
+    
+    // Find users with this license number (case-insensitive)
     const users = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("licenseNumber"), args.licenseNumber.trim()))
+      .filter((q) => q.neq(q.field("userId"), args.currentUserId))
       .collect();
-      
-    // If there's a user with this license who is not the current user, return true
-    return users.some(user => user.userId !== args.currentUserId);
+    
+    // Check if any user has this license (case-insensitive)
+    return users.some(user => 
+      user.licenseNumber && 
+      user.licenseNumber.toUpperCase() === normalizedLicense
+    );
   },
 });
 
@@ -102,8 +114,8 @@ export const updateUserProfile = mutation({
     firstName: v.string(),
     lastName: v.string(),
     licenseNumber: v.string(),
-    licenseImageUrl: v.string(), // Changed from optional to required
-    aadharImageUrl: v.string(),  // Changed from optional to required
+    licenseImageUrl: v.string(),
+    aadharImageUrl: v.string(),
   },
   handler: async (ctx, args) => {
     const user = await ctx.db
@@ -124,39 +136,57 @@ export const updateUserProfile = mutation({
     if (!args.licenseImageUrl || !args.aadharImageUrl) {
       throw new Error("Both license and Aadhar card images are required");
     }
-        // Check if license number is already used by another user
-        if (args.licenseNumber !== user.licenseNumber) {
-          const licenseExists = await ctx.db
-            .query("users")
-            .filter(q => 
-              q.and(
-                q.eq(q.field("licenseNumber"), args.licenseNumber),
-                q.neq(q.field("userId"), args.userId)
-              )
-            )
-            .first();
-            
-          if (licenseExists) {
-            throw new Error("This license number is already registered with another account");
-          }
-        }
+    
+    // Validate license format - only alphanumeric allowed
+    const alphanumericRegex = /^[a-zA-Z0-9]+$/;
+    if (!alphanumericRegex.test(args.licenseNumber.trim())) {
+      throw new Error("License number must contain only letters and numbers");
+    }
+    
+    // Normalize license number to uppercase for consistent storage
+    const normalizedLicense = args.licenseNumber.trim().toUpperCase();
+    
+    // Check if license number is already used by another user (case-insensitive)
+    // Only check if the user is changing their license number
+    const isChangingLicense = 
+      !user.licenseNumber || 
+      user.licenseNumber.toUpperCase() !== normalizedLicense;
+      
+    if (isChangingLicense) {
+      const licenseExists = await ctx.db
+        .query("users")
+        .filter(q =>
+          q.and(
+            q.neq(q.field("userId"), args.userId),
+            // We're comparing already normalized (uppercase) values
+            q.eq(q.expression(q => q.string(normalizedLicense)), 
+                q.expression(q => q.string(q.field("licenseNumber")).toUpperCase()))
+          )
+        )
+        .first();
+        
+      if (licenseExists) {
+        throw new Error("This license number is already registered with another account");
+      }
+    }
+    
     console.log("Updating user profile with complete data:", {
       userId: args.userId,
       firstName: args.firstName,
       lastName: args.lastName,
-      licenseNumber: args.licenseNumber,
+      licenseNumber: normalizedLicense,
       hasLicenseImage: !!args.licenseImageUrl,
       hasAadharImage: !!args.aadharImageUrl
     });
     
-    // Update user profile with all required fields
+    // Update user profile with normalized license number
     await ctx.db.patch(user._id, {
       firstName: args.firstName,
       lastName: args.lastName,
-      licenseNumber: args.licenseNumber,
+      licenseNumber: normalizedLicense, // Save in uppercase
       licenseImageUrl: args.licenseImageUrl,
       aadharImageUrl: args.aadharImageUrl,
-      profileComplete: true, // Mark as complete since all fields are now required
+      profileComplete: true,
     });
     
     return user._id;
@@ -366,5 +396,184 @@ export const directUpdateUser = mutation({
     await ctx.db.patch(user._id, cleanUpdateData);
     
     return user._id;
+  },
+});
+
+export const addUserTag = mutation({
+  args: {
+    adminId: v.string(),
+    userId: v.string(),
+    tag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { adminId, userId, tag } = args;
+    
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can manage user tags");
+    }
+    
+    // Get the user to update
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Normalize the tag (trim, lowercase)
+    const normalizedTag = tag.trim();
+    
+    if (!normalizedTag) {
+      throw new Error("Tag cannot be empty");
+    }
+    
+    // Get current tags or initialize empty array
+    const currentTags = user.tags || [];
+    
+    // Check if tag already exists (case insensitive)
+    if (currentTags.some(t => t.toLowerCase() === normalizedTag.toLowerCase())) {
+      return user._id; // Tag already exists, no need to update
+    }
+    
+    // Add the new tag
+    const updatedTags = [...currentTags, normalizedTag];
+    
+    // Update the user's tags
+    await ctx.db.patch(user._id, {
+      tags: updatedTags,
+    });
+    
+    return user._id;
+  },
+});
+
+// Remove a tag from a user (admin only)
+export const removeUserTag = mutation({
+  args: {
+    adminId: v.string(),
+    userId: v.string(),
+    tag: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { adminId, userId, tag } = args;
+    
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can manage user tags");
+    }
+    
+    // Get the user to update
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Get current tags or return if no tags
+    const currentTags = user.tags || [];
+    if (currentTags.length === 0) {
+      return user._id;
+    }
+    
+    // Remove the tag (case insensitive)
+    const updatedTags = currentTags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+    
+    // Only update if tags actually changed
+    if (updatedTags.length !== currentTags.length) {
+      await ctx.db.patch(user._id, {
+        tags: updatedTags,
+      });
+    }
+    
+    return user._id;
+  },
+});
+
+// Update all tags for a user (admin only)
+export const updateUserTags = mutation({
+  args: {
+    adminId: v.string(),
+    userId: v.string(),
+    tags: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { adminId, userId, tags } = args;
+    
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can manage user tags");
+    }
+    
+    // Get the user to update
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Normalize tags (trim, remove empty)
+    const normalizedTags = [...new Set(
+      tags
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0)
+    )];
+    
+    // Update the user's tags
+    await ctx.db.patch(user._id, {
+      tags: normalizedTags,
+    });
+    
+    return user._id;
+  },
+});
+
+// Get all unique tags in the system (admin only)
+export const getAllTags = query({
+  args: { adminId: v.string() },
+  handler: async (ctx, args) => {
+    // Check if requester is admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", args.adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can view all tags");
+    }
+    
+    // Get all users
+    const users = await ctx.db.query("users").collect();
+    
+    // Extract and flatten all tags
+    const allTags = users.flatMap(user => user.tags || []);
+    
+    // Get unique tags and sort alphabetically
+    const uniqueTags = [...new Set(allTags)].sort();
+    
+    return uniqueTags;
   },
 });

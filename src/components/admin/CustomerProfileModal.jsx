@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Tag as TagIcon } from 'lucide-react';
 
 export default function CustomerProfileModal({ userId, onClose }) {
   const [isLoading, setIsLoading] = useState(true);
@@ -198,6 +199,26 @@ export default function CustomerProfileModal({ userId, onClose }) {
                   </div>
                 </div>
               </div>
+
+              {/* Customer Tags Section */}
+              {userData && userData.tags && userData.tags.length > 0 && (
+  <div className="mt-4 mb-6">
+    <div className="flex items-center mb-2">
+      <TagIcon className="h-4 w-4 text-primary mr-2" />
+      <h3 className="text-sm font-medium text-gray-800">Customer Tags</h3>
+    </div>
+    <div className="flex flex-wrap gap-1.5">
+      {userData.tags.map((tag, index) => (
+        <span 
+          key={index}
+          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
 
               {/* Verification Documents */}
               <div className="border-t border-gray-200 pt-6">

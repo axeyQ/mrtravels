@@ -57,6 +57,23 @@ export default defineSchema({
     extensionHours: v.optional(v.number()), // Additional hours added
     extensionCost: v.optional(v.number()), // Additional cost for extension
     extensionProcessedBy: v.optional(v.string()), // User who processed the extension
+  // Return inspection fields
+  returnInspectionNotes: v.optional(v.string()),
+  returnDamageFound: v.optional(v.boolean()),
+  damageDescription: v.optional(v.string()),
+  damageImages: v.optional(v.array(v.string())), // URLs to damage photos
+  inspectedBy: v.optional(v.string()), // Admin who performed inspection
+  inspectionTime: v.optional(v.number()),
+  
+  // Vehicle condition ratings (1-5)
+  cleanlinessRating: v.optional(v.number()),
+  mechanicalRating: v.optional(v.number()),
+  fuelLevel: v.optional(v.number()), // Percentage
+  
+  // Additional charges
+  additionalCharges: v.optional(v.number()),
+  chargeReason: v.optional(v.string()),
+   
   }).index("by_userId", ["userId"]).index("by_bikeId", ["bikeId"]),
   
   users: defineTable({
@@ -74,6 +91,7 @@ export default defineSchema({
     profileComplete: v.optional(v.boolean()),
     role: v.string(), // "user", "admin"
     createdAt: v.number(),
+    tags: v.optional(v.array(v.string())),
   }).index("by_userId", ["userId"]).index("by_phoneNumber", ["phoneNumber"]),
   
   // Payments table

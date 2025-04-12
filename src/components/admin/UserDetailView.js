@@ -1,13 +1,17 @@
-// src/components/admin/UserDetailView.jsx
 "use client";
-import { useState } from 'react';
-import { useQuery } from 'convex/react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { BiX, BiDownload } from 'react-icons/bi';
+import { Tag as TagIcon } from 'lucide-react';
 import Image from 'next/image';
+import TagInput from '@/components/ui/TagInput';
+import { toast } from 'react-toastify';
 
 export default function UserDetailView({ user, onClose, onToggleAdmin }) {
   const [activeTab, setActiveTab] = useState('profile');
+  const [userTags, setUserTags] = useState([]);
+  const [initialTagsSet, setInitialTagsSet] = useState(false);
   
   // Get the userId from the user object
   const userId = user?.userId;
@@ -24,6 +28,43 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
     userId ? { userId } : "skip"  // Skip the query if no userId
   ) || [];
   
+  // Tag management
+  const updateUserTags = useMutation(api.users.updateUserTags);
+  
+  // Fetch all tags for admin users
+  const allTags = useQuery(
+    api.users.getAllTags,
+    user?.role === "admin" ? { adminId: user.userId } : "skip"
+  ) || [];
+  
+  // Use a separate effect to initialize tags when userData changes
+  useEffect(() => {
+    if (userData && !initialTagsSet) {
+      setUserTags(userData.tags || []);
+      setInitialTagsSet(true);
+    }
+  }, [userData, initialTagsSet]);
+  
+  // Handle tag changes
+  const handleTagsChange = async (newTags) => {
+    if (user?.role !== "admin") return;
+    
+    setUserTags(newTags);
+    
+    try {
+      await updateUserTags({
+        adminId: user.userId,
+        userId: userData.userId,
+        tags: newTags
+      });
+      toast.success("Tags updated successfully");
+    } catch (error) {
+      toast.error("Failed to update tags: " + error.message);
+      // Revert to original tags on error
+      setUserTags(userData?.tags || []);
+    }
+  };
+
   // If user data isn't ready yet, show a loading state
   if (!user || (userId && !userData)) {
     return (
@@ -181,6 +222,48 @@ export default function UserDetailView({ user, onClose, onToggleAdmin }) {
                   </div>
                 </div>
               </div>
+              
+              {/* Customer Tags Section */}
+              {user?.role === "admin" && (
+                <div className="mt-8 border-t pt-6">
+                  <div className="flex items-center mb-3">
+                    <TagIcon className="h-5 w-5 text-primary mr-2" />
+                    <h3 className="text-lg font-medium">Customer Tags</h3>
+                  </div>
+                  
+                  <p className="text-sm text-gray-500 mb-2">
+                    Add tags to categorize this customer. Press Enter or comma to add each tag.
+                  </p>
+                  
+                  <TagInput 
+                    tags={userTags} 
+                    onChange={handleTagsChange} 
+                    placeholderText="Add customer tag..."
+                  />
+                  
+                  {allTags.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-500 mb-1">Common tags:</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {allTags.map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => {
+                              if (!userTags.some(t => t.toLowerCase() === tag.toLowerCase())) {
+                                handleTagsChange([...userTags, tag]);
+                              }
+                            }}
+                            className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               
               {/* ID Documents Section */}
               <div className="mt-8">

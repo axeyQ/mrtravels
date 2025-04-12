@@ -881,3 +881,54 @@ export const extendBooking = mutation({
     };
   }
 });
+
+export const saveReturnInspection = mutation({
+  args: {
+    adminId: v.string(),
+    bookingId: v.id("bookings"),
+    inspectionData: v.object({
+      returnInspectionNotes: v.optional(v.string()),
+      returnDamageFound: v.optional(v.boolean()),
+      damageDescription: v.optional(v.string()),
+      damageImages: v.optional(v.array(v.string())),
+      cleanlinessRating: v.optional(v.number()),
+      mechanicalRating: v.optional(v.number()),
+      fuelLevel: v.optional(v.number()),
+      additionalCharges: v.optional(v.number()),
+      chargeReason: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const { adminId, bookingId, inspectionData } = args;
+    
+    // Check if admin
+    const admin = await ctx.db
+      .query("users")
+      .withIndex("by_userId", (q) => q.eq("userId", adminId))
+      .unique();
+    
+    if (!admin || admin.role !== "admin") {
+      throw new Error("Unauthorized: Only admins can perform vehicle inspections");
+    }
+    
+    // Check if booking exists
+    const booking = await ctx.db.get(bookingId);
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+    
+    // Update booking with inspection data
+    await ctx.db.patch(bookingId, {
+      ...inspectionData,
+      inspectedBy: adminId,
+      inspectionTime: Date.now(),
+      status: "completed", // Automatically mark as completed
+    });
+    
+    return {
+      success: true,
+      message: "Vehicle inspection saved successfully",
+      bookingId
+    };
+  },
+})
