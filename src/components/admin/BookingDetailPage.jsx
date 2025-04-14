@@ -21,6 +21,7 @@ import {
   Droplet
 } from 'lucide-react';
 import { Tag as TagIcon } from 'lucide-react';
+import IntegratedReturnProcess from './IntegratedReturnProcess';
 
 export default function BookingDetailPage({ bookingId }) {
   const router = useRouter();
@@ -230,34 +231,24 @@ export default function BookingDetailPage({ bookingId }) {
             
             {/* Admin Actions */}
             {isAdmin && booking.status === "confirmed" && (
-              <div className="flex space-x-3">
-                {booking.paymentStatus === "deposit_paid" && (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 flex items-center"
-                  >
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    Collect Payment
-                  </button>
-                )}
-                
-                <button
-                  onClick={() => setShowReturnInspection(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center"
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Process Return
-                </button>
-                
-                <button
-                  onClick={() => handleUpdateStatus("cancelled")}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 flex items-center"
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Cancel
-                </button>
-              </div>
-            )}
+  <div className="flex space-x-3">
+    <button
+      onClick={() => setShowReturnInspection(true)}
+      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 flex items-center"
+    >
+      <CheckCircle className="h-4 w-4 mr-1" />
+      Process Return & Payment
+    </button>
+    
+    <button
+      onClick={() => handleUpdateStatus("cancelled")}
+      className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 flex items-center"
+    >
+      <XCircle className="h-4 w-4 mr-1" />
+      Cancel
+    </button>
+  </div>
+)}
           </div>
         </div>
 
@@ -497,12 +488,12 @@ export default function BookingDetailPage({ bookingId }) {
 
       {/* Vehicle Return Inspection Modal */}
       {showReturnInspection && (
-        <VehicleReturnInspection
-          bookingId={bookingId}
-          adminId={user.id}
-          onClose={() => setShowReturnInspection(false)}
-        />
-      )}
+  <IntegratedReturnProcess
+    bookingId={bookingId}
+    adminId={user.id}
+    onClose={() => setShowReturnInspection(false)}
+  />
+)}
       
       {/* Payment Collection Modal */}
       {showPaymentModal && (

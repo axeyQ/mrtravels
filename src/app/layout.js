@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { Providers } from './providers'
 import UserDataSync from '../components/UserDataSync'
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans`}>
+      <Analytics/>
         <Providers>
           {/* Add UserDataSync component to sync user data with Convex */}
           <UserDataSync />

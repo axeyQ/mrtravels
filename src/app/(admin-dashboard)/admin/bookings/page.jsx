@@ -2,7 +2,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "react-toastify";
 import { BiCheck, BiX, BiCalendar, BiMoney, BiUser, BiDetail } from "react-icons/bi";
 import { CheckCircle } from 'lucide-react';
@@ -11,8 +11,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import CustomerProfileModal from "@/components/admin/CustomerProfileModal";
 import AdminCustomBookingModal from "@/components/admin/AdminCustomBookingModal";
-import VehicleReturnInspection from "@/components/admin/VehicleReturnInspection";
+import IntegratedReturnProcess from '@/components/admin/IntegratedReturnProcess';
 import ResponsiveTable from "@/components/admin/ResponsiveTable";
+import BookingFilters from "@/components/admin/BookingFilters";
 
 export default function AdminBookings() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function AdminBookings() {
   
   const isLoading = !isUserLoaded || bookings === undefined || bikes === undefined || users === undefined;
   
+  // State for modals and selections
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [statusToUpdate, setStatusToUpdate] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -45,6 +47,15 @@ export default function AdminBookings() {
   // Vehicle return inspection state
   const [showReturnInspection, setShowReturnInspection] = useState(false);
   const [bookingForInspection, setBookingForInspection] = useState(null);
+  
+  // Filter state
+  const [filters, setFilters] = useState({
+    status: "",
+    dateFrom: null,
+    dateTo: null,
+    customerName: "",
+    bikeId: "",
+  });
   
   const updateBookingStatus = useMutation(api.bookings.updateBookingStatus);
   const completePayment = useMutation(api.bookings.completePayment);
@@ -156,8 +167,63 @@ export default function AdminBookings() {
     );
   };
 
-  // Sort bookings by start time (newest first)
-  const sortedBookings = [...bookings].sort((a, b) => b.startTime - a.startTime);
+  // Filter bookings based on applied filters
+  const filteredBookings = useMemo(() => {
+    if (!bookings.length) return [];
+    
+    return bookings.filter(booking => {
+      // Status filter
+      if (filters.status && booking.status !== filters.status) {
+        return false;
+      }
+      
+      // Date range filter - check if booking dates overlap with filtered range
+      if (filters.dateFrom && new Date(booking.endTime) < filters.dateFrom) {
+        return false;
+      }
+      
+      if (filters.dateTo) {
+        const filterEndDate = new Date(filters.dateTo);
+        filterEndDate.setHours(23, 59, 59, 999); // End of the selected day
+        if (new Date(booking.startTime) > filterEndDate) {
+          return false;
+        }
+      }
+      
+      // Customer name filter (case insensitive)
+      if (filters.customerName && !booking.userName.toLowerCase().includes(filters.customerName.toLowerCase())) {
+        return false;
+      }
+      
+      // Bike filter
+      if (filters.bikeId && booking.bikeId !== filters.bikeId) {
+        return false;
+      }
+      
+      return true; // If all filters pass
+    });
+  }, [bookings, filters]);
+  
+  // Sort filtered bookings by start time (newest first)
+  const sortedBookings = useMemo(() => {
+    return [...filteredBookings].sort((a, b) => b.startTime - a.startTime);
+  }, [filteredBookings]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      status: "",
+      dateFrom: null,
+      dateTo: null,
+      customerName: "",
+      bikeId: "",
+    });
+  };
+
+  // Apply filters
+  const applyFilters = (newFilters) => {
+    setFilters(newFilters);
+  };
   
   // Table headers for desktop view
   const headers = ["Customer", "Bike", "Booking Period", "Payment", "Status", "Actions"];
@@ -208,25 +274,25 @@ export default function AdminBookings() {
               </div>
               <div className="text-sm text-gray-500">{booking.userPhone}</div>
               {customerData && customerData.tags && customerData.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {customerData.tags.slice(0, 2).map((tag, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-            >
-              {tag}
-            </span>
-          ))}
-          {customerData.tags.length > 2 && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-              +{customerData.tags.length - 2}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  </div>
-</td>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {customerData.tags.slice(0, 2).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {customerData.tags.length > 2 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      +{customerData.tags.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="flex items-center">
             {bike && (
@@ -311,55 +377,32 @@ export default function AdminBookings() {
             )}
             
             {booking.status === "confirmed" && (
-              <>
-                {/* For confirmed bookings with deposit paid, show collect remaining payment option */}
-                {booking.paymentStatus === "deposit_paid" && (
-                  <button
-                    onClick={() => {
-                      setSelectedBooking(booking);
-                      setShowPaymentModal(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Collect payment"
-                  >
-                    <BiMoney className="h-5 w-5" />
-                  </button>
-                )}
-                
-                {/* Add Process Return button */}
-                <button
-                  onClick={() => {
-                    setBookingForInspection(booking);
-                    setShowReturnInspection(true);
-                  }}
-                  className="text-green-600 hover:text-green-800"
-                  title="Process Return"
-                >
-                  <CheckCircle className="h-5 w-5" />
-                </button>
-                
-                <button
-                  onClick={() => {
-                    setSelectedBooking(booking);
-                    setStatusToUpdate("completed");
-                  }}
-                  className="text-blue-600 hover:text-blue-800"
-                  title="Mark as completed"
-                >
-                  <BiCheck className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedBooking(booking);
-                    setStatusToUpdate("cancelled");
-                  }}
-                  className="text-red-600 hover:text-red-800"
-                  title="Cancel booking"
-                >
-                  <BiX className="h-5 w-5" />
-                </button>
-              </>
-            )}
+  <>
+    {/* Process Return & Payment button - single unified action */}
+    <button
+      onClick={() => {
+        setBookingForInspection(booking);
+        setShowReturnInspection(true);
+      }}
+      className="text-green-600 hover:text-green-800"
+      title="Process Return & Payment"
+    >
+      <CheckCircle className="h-5 w-5" />
+    </button>
+    
+    {/* Cancel button - still needed */}
+    <button
+      onClick={() => {
+        setSelectedBooking(booking);
+        setStatusToUpdate("cancelled");
+      }}
+      className="text-red-600 hover:text-red-800"
+      title="Cancel booking"
+    >
+      <BiX className="h-5 w-5" />
+    </button>
+  </>
+)}
           </div>
         </td>
       </tr>
@@ -414,23 +457,23 @@ export default function AdminBookings() {
                 </div>
                 <div className="text-xs text-gray-500">{booking.userPhone}</div>
                 {customerData && customerData.tags && customerData.tags.length > 0 && (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {customerData.tags.length > 0 && (
-          <span
-            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-          >
-            {customerData.tags[0]}
-          </span>
-        )}
-        {customerData.tags.length > 1 && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-            +{customerData.tags.length - 1}
-          </span>
-        )}
-      </div>
-    )}
-  </div>
-</div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {customerData.tags.length > 0 && (
+                      <span
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      >
+                        {customerData.tags[0]}
+                      </span>
+                    )}
+                    {customerData.tags.length > 1 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                        +{customerData.tags.length - 1}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="flex">
               <StatusBadge status={booking.status} />
               <PaymentStatusBadge paymentStatus={booking.paymentStatus} />
@@ -487,7 +530,7 @@ export default function AdminBookings() {
             >
               <BiDetail className="h-5 w-5" />
             </button>
-          
+           
             {/* Different action buttons based on booking state */}
             {booking.status === "pending" && (
               <>
@@ -515,54 +558,32 @@ export default function AdminBookings() {
             )}
             
             {booking.status === "confirmed" && (
-              <>
-                {booking.paymentStatus === "deposit_paid" && (
-                  <button
-                    onClick={() => {
-                      setSelectedBooking(booking);
-                      setShowPaymentModal(true);
-                    }}
-                    className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full"
-                    title="Collect payment"
-                  >
-                    <BiMoney className="h-5 w-5" />
-                  </button>
-                )}
-                
-                {/* Add Process Return button */}
-                <button
-                  onClick={() => {
-                    setBookingForInspection(booking);
-                    setShowReturnInspection(true);
-                  }}
-                  className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full"
-                  title="Process Return"
-                >
-                  <CheckCircle className="h-5 w-5" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSelectedBooking(booking);
-                    setStatusToUpdate("completed");
-                  }}
-                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full"
-                  title="Mark as completed"
-                >
-                  <BiCheck className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedBooking(booking);
-                    setStatusToUpdate("cancelled");
-                  }}
-                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full"
-                  title="Cancel booking"
-                >
-                  <BiX className="h-5 w-5" />
-                </button>
-              </>
-            )}
+  <>
+    {/* Process Return & Payment button - single unified action */}
+    <button
+      onClick={() => {
+        setBookingForInspection(booking);
+        setShowReturnInspection(true);
+      }}
+      className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-full"
+      title="Process Return & Payment"
+    >
+      <CheckCircle className="h-5 w-5" />
+    </button>
+    
+    {/* Cancel button - still needed */}
+    <button
+      onClick={() => {
+        setSelectedBooking(booking);
+        setStatusToUpdate("cancelled");
+      }}
+      className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full"
+      title="Cancel booking"
+    >
+      <BiX className="h-5 w-5" />
+    </button>
+  </>
+)}
           </div>
         </div>
       </div>
@@ -594,6 +615,15 @@ export default function AdminBookings() {
         </button>
       </div>
       
+      {/* Booking Filters Component */}
+      <BookingFilters 
+        filters={filters}
+        setFilters={setFilters}
+        bikes={bikes}
+        clearFilters={clearFilters}
+        applyFilters={applyFilters}
+      />
+      
       {showCustomBookingModal && (
         <AdminCustomBookingModal
           onClose={() => setShowCustomBookingModal(false)}
@@ -601,12 +631,22 @@ export default function AdminBookings() {
         />
       )}
       
+      {/* Booking count summary when filters are applied */}
+      {Object.values(filters).some(v => v !== "" && v !== null) && (
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Showing {sortedBookings.length} of {bookings.length} bookings
+            {filters.status && <span> with status <strong>{filters.status}</strong></span>}
+          </p>
+        </div>
+      )}
+      
       {sortedBookings.length === 0 && !isLoading ? (
         <div className="bg-white rounded-lg shadow p-6 text-center">
           <p className="text-gray-500">No bookings found</p>
         </div>
       ) : (
-        <ResponsiveTable 
+        <ResponsiveTable
           headers={headers}
           data={sortedBookings}
           renderRow={renderRow}
@@ -748,9 +788,9 @@ export default function AdminBookings() {
         />
       )}
       
-      {/* Vehicle Return Inspection Modal */}
+      {/* Integrated Return Process Modal */}
       {showReturnInspection && bookingForInspection && (
-        <VehicleReturnInspection
+        <IntegratedReturnProcess
           bookingId={bookingForInspection._id}
           adminId={user.id}
           onClose={() => {

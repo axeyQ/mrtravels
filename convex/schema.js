@@ -4,7 +4,6 @@ import { v } from "convex/values";
 
 export default defineSchema({
   bikes: defineTable({
-    // existing bikes table schema
     adminId: v.optional(v.string()),
     name: v.string(),
     type: v.string(),
@@ -27,8 +26,7 @@ export default defineSchema({
     startTime: v.number(),
     endTime: v.number(),
     totalPrice: v.number(),
-    status: v.string(), // "pending", "confirmed", "completed", "cancelled"
-    
+    status: v.string(), 
     // Payment-related fields
     paymentStatus: v.optional(v.string()), // "pending", "deposit_paid", "fully_paid"
     depositAmount: v.optional(v.number()),
