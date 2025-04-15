@@ -18,7 +18,7 @@ export default function UserBookings() {
   // Get all bookings for the current user
   const userBookings = useQuery(
     api.bookings.getUserBookings,
-    isUserLoaded && user ? { userId: user.id } : null
+    isUserLoaded && user ? { userId: user.id } : "skip"
   ) || [];
   
   // Get all bike IDs from bookings to fetch their details

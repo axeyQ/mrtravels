@@ -1,6 +1,6 @@
 // src/app/(dashboard)/payment-upi/page.jsx
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
@@ -8,7 +8,8 @@ import UpiPaymentInstructions from '@/components/payments/UpiPaymentInstructions
 import PaymentConfirmation from '@/components/payments/PaymentConfirmation';
 import { generateReferenceId } from '@/config/paymentConfig';
 
-export default function UpiPaymentPage() {
+// Create a component that uses useSearchParams inside a Suspense boundary
+function PaymentUpiContent() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('booking_id');
   const updateBookingReference = useMutation(api.bookings.updatePaymentReference);
@@ -60,5 +61,16 @@ export default function UpiPaymentPage() {
         />
       )}
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function PaymentUpiPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>}>
+      <PaymentUpiContent />
+    </Suspense>
   );
 }
