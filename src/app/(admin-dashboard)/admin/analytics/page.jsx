@@ -301,6 +301,96 @@ export default function AdminAnalytics() {
     return Object.values(categories);
   }, [filteredBookings]);
 
+  // ----- PAYMENT ANALYTICS DATA PREPARATIONS -----
+  
+  // Payment Method Distribution
+  const paymentMethodData = useMemo(() => {
+    const methods = {
+      upi: 0,
+      cash: 0,
+      card: 0,
+      other: 0
+    };
+    
+    filteredBookings.forEach(booking => {
+      if (booking.paymentMethod === 'upi') {
+        methods.upi++;
+      } else if (booking.paymentMethod === 'cash') {
+        methods.cash++;
+      } else if (booking.paymentMethod === 'card') {
+        methods.card++;
+      } else {
+        methods.other++;
+      }
+    });
+    
+    return [
+      { name: 'UPI', value: methods.upi, color: DATA_COLORS.primary },
+      { name: 'Cash', value: methods.cash, color: DATA_COLORS.secondary },
+      { name: 'Card', value: methods.card, color: DATA_COLORS.tertiary },
+      { name: 'Other', value: methods.other, color: DATA_COLORS.neutral }
+    ].filter(item => item.value > 0); // Only show methods that have counts
+  }, [filteredBookings]);
+
+  // Payment Status Distribution
+  const paymentStatusData = useMemo(() => {
+    const statuses = {
+      pending: 0,
+      deposit_paid: 0,
+      fully_paid: 0
+    };
+    
+    filteredBookings.forEach(booking => {
+      if (booking.paymentStatus === 'pending' || !booking.paymentStatus) {
+        statuses.pending++;
+      } else if (booking.paymentStatus === 'deposit_paid') {
+        statuses.deposit_paid++;
+      } else if (booking.paymentStatus === 'fully_paid') {
+        statuses.fully_paid++;
+      }
+    });
+    
+    return [
+      { name: 'Pending', value: statuses.pending, color: DATA_COLORS.highlight },
+      { name: 'Deposit Paid', value: statuses.deposit_paid, color: DATA_COLORS.primary },
+      { name: 'Fully Paid', value: statuses.fully_paid, color: DATA_COLORS.positive }
+    ].filter(item => item.value > 0); // Only show statuses that have counts
+  }, [filteredBookings]);
+
+  // Payment funnel data
+  const paymentFunnelData = useMemo(() => {
+    const totalBookings = filteredBookings.length;
+    const initiatedPayments = filteredBookings.filter(booking => 
+      booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid'
+    ).length;
+    const completedPayments = filteredBookings.filter(booking => 
+      booking.paymentStatus === 'fully_paid'
+    ).length;
+    
+    return [
+      { name: 'Bookings', value: totalBookings },
+      { name: 'Initiated', value: initiatedPayments },
+      { name: 'Completed', value: completedPayments }
+    ];
+  }, [filteredBookings]);
+
+  // Calculate conversion rates
+  const conversionRates = useMemo(() => {
+    const totalBookings = filteredBookings.length;
+    const initiatedPayments = filteredBookings.filter(booking => 
+      booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid'
+    ).length;
+    const completedPayments = filteredBookings.filter(booking => 
+      booking.paymentStatus === 'fully_paid'
+    ).length;
+    
+    return {
+      paymentInitiation: totalBookings ? Math.round((initiatedPayments / totalBookings) * 100) : 0,
+      paymentCompletion: initiatedPayments ? Math.round((completedPayments / initiatedPayments) * 100) : 0,
+      overallConversion: totalBookings ? Math.round((completedPayments / totalBookings) * 100) : 0
+    };
+  }, [filteredBookings]);
+
   // Show loading state
   if (isLoading) {
     return (
@@ -419,6 +509,29 @@ export default function AdminAnalytics() {
             </div>
             <div className={`p-3 rounded-lg bg-orange-100 text-orange-800`}>
               <BarChart2 className="h-6 w-6" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Payment Success Card */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-gray-500 flex items-center">
+                <Clock className="h-4 w-4 mr-1 text-indigo-500" />
+                Payment Success
+              </p>
+              <p className="text-2xl md:text-3xl font-bold mt-1">
+                {conversionRates.paymentInitiation}%
+              </p>
+              <div className="mt-1 text-xs flex items-center">
+                <span className="text-indigo-600">{filteredBookings.filter(b => 
+                  b.paymentStatus === 'deposit_paid' || b.paymentStatus === 'fully_paid'
+                ).length} payments received</span>
+              </div>
+            </div>
+            <div className={`p-3 rounded-lg bg-indigo-100 text-indigo-800`}>
+              <DollarSign className="h-6 w-6" />
             </div>
           </div>
         </div>
@@ -587,7 +700,7 @@ export default function AdminAnalytics() {
       </div>
       
       {/* Charts Section - Row 3 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Vehicle Type Distribution */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
@@ -659,6 +772,142 @@ export default function AdminAnalytics() {
               <p className="text-gray-500">No user growth data available</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Payment Analytics Section */}
+      <div className="mt-8 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Payment Analytics</h2>
+          <div className="bg-blue-50 px-3 py-1 rounded-md flex items-center">
+            <DollarSign className="h-4 w-4 text-blue-600 mr-1" />
+            <span className="text-sm text-blue-700">Phase 2 Analytics</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Charts - Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Payment Method Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-800">Payment Methods</h3>
+          </div>
+          {paymentMethodData.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentMethodData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {paymentMethodData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} payments`, 'Count']} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center">
+              <p className="text-gray-500">No payment method data available</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Payment Status Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-800">Payment Status</h3>
+          </div>
+          {paymentStatusData.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {paymentStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} bookings`, 'Count']} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center">
+              <p className="text-gray-500">No payment status data available</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Payment Charts - Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Payment Funnel */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-800">Payment Funnel</h3>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={paymentFunnelData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" name="Count" fill={DATA_COLORS.primary} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        
+        {/* Conversion Metrics */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold text-gray-800">Payment Conversion</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-3xl font-bold text-blue-900">{conversionRates.paymentInitiation}%</div>
+              <div className="mt-1 text-sm font-medium text-blue-800">Payment Initiation</div>
+              <div className="mt-1 text-xs text-blue-700">Bookings that initiated payment</div>
+            </div>
+            
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="text-3xl font-bold text-green-900">{conversionRates.paymentCompletion}%</div>
+              <div className="mt-1 text-sm font-medium text-green-800">Payment Completion</div>
+              <div className="mt-1 text-xs text-green-700">Initiated payments completed</div>
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="text-3xl font-bold text-purple-900">{conversionRates.overallConversion}%</div>
+              <div className="mt-1 text-sm font-medium text-purple-800">Overall Conversion</div>
+              <div className="mt-1 text-xs text-purple-700">Fully paid bookings</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

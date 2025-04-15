@@ -439,50 +439,34 @@ ${extraFields.join(', ')}`
   }
 });
 
-// Update payment status mutation with fixed validator
+
 export const updatePaymentStatus = mutation({
-  args: {
-    bookingId: v.id("bookings"),
+  args: { 
+    bookingId: v.string(),
     success: v.boolean(),
-    transactionId: v.optional(v.string()),
-    depositAmount: v.optional(v.number()), // Added this parameter to fix validation error
+    transactionId: v.string(),
+    depositAmount: v.number()
   },
   handler: async (ctx, args) => {
     const { bookingId, success, transactionId, depositAmount } = args;
-    // Get the booking
-    const booking = await ctx.db.get(bookingId);
-    if (!booking) {
-      throw new Error("Booking not found");
-    }
-    // Check if payment status is already updated to prevent redundant updates
-    if (success && booking.paymentStatus === "deposit_paid") {
-      return { success: true, bookingId, alreadyProcessed: true };
-    }
-    if (!success && booking.paymentStatus === "payment_failed") {
-      return { success: false, bookingId, alreadyProcessed: true };
-    }
-    const now = Date.now();
+    
     if (success) {
-      // Update booking for successful payment
-      await ctx.db.patch(bookingId, {
-        status: "confirmed", // Confirm the booking
-        paymentStatus: "deposit_paid",
-        depositAmount: depositAmount || 42, // Default to 42 if not specified
-        depositPaidAt: now,
-        paymentTransactionId: transactionId,
-        remainingAmount: booking.totalPrice - 40, // Rs.40 goes to bike owner
+      // Mark deposit as paid
+      await ctx.db.patch(bookingId, { 
+        paymentStatus: 'deposit_paid', 
+        paymentReferenceId: transactionId,
+        depositAmount
       });
-      return { success: true, bookingId };
     } else {
-      // Handle failed payment
-      await ctx.db.patch(bookingId, {
-        paymentStatus: "payment_failed",
+      // Mark payment as failed
+      await ctx.db.patch(bookingId, { 
+        paymentStatus: 'payment_failed' 
       });
-      return { success: false, bookingId };
     }
+    
+    return bookingId;
   },
 });
-
 // Complete payment mutation (when customer returns)
 export const completePayment = mutation({
   args: {
@@ -932,3 +916,47 @@ export const saveReturnInspection = mutation({
     };
   },
 })
+
+export const getBookingById = query({
+  args: { bookingId: v.string(), userId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { bookingId, userId } = args;
+    
+    // Fetch the booking
+    const booking = await ctx.db.get(bookingId);
+    
+    // If booking doesn't exist, return null
+    if (!booking) {
+      return null;
+    }
+    
+    // Security check - only allow users to see their own bookings
+    // or admins to see any booking
+    const user = userId ? await ctx.db
+      .query("users")
+      .filter(q => q.eq(q.field("userId"), userId))
+      .first() : null;
+    
+    if (booking.userId === userId || (user && user.role === "admin")) {
+      return booking;
+    }
+    
+    // If neither the owner nor an admin, return null for security
+    return null;
+  },
+});
+export const updatePaymentReference = mutation({
+  args: { 
+    bookingId: v.string(),
+    referenceId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { bookingId, referenceId } = args;
+    
+    await ctx.db.patch(bookingId, { 
+      paymentReferenceId: referenceId,
+    });
+    
+    return bookingId;
+  },
+});

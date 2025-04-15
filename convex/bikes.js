@@ -255,3 +255,30 @@ export const fixBikesWithoutAdminId = mutation({
     };
   },
 });
+
+export const getBikesByIds = query({
+  args: { bikeIds: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const { bikeIds } = args;
+    
+    // If no bike IDs are provided, return an empty array
+    if (!bikeIds || bikeIds.length === 0) {
+      return [];
+    }
+    
+    // Fetch all bikes that match the provided IDs
+    const bikes = await Promise.all(
+      bikeIds.map(async (id) => {
+        try {
+          return await ctx.db.get(id);
+        } catch (error) {
+          console.error(`Error fetching bike with ID ${id}:`, error);
+          return null;
+        }
+      })
+    );
+    
+    // Filter out any null values (bikes that weren't found)
+    return bikes.filter(bike => bike !== null);
+  },
+});

@@ -71,6 +71,9 @@ export default defineSchema({
   // Additional charges
   additionalCharges: v.optional(v.number()),
   chargeReason: v.optional(v.string()),
+  paymentReferenceId: v.optional(v.string()), // For UPI reference ID
+  transactionId: v.optional(v.string()), // For UPI reference ID
+  paymentMethod: v.optional(v.string()), // For UPI reference ID
    
   }).index("by_userId", ["userId"]).index("by_bikeId", ["bikeId"]),
   

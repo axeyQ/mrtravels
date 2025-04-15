@@ -6,7 +6,6 @@ import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
-import VehicleReturnInspection from '@/components/admin/VehicleReturnInspection';
 import CustomerProfileModal from '@/components/admin/CustomerProfileModal';
 import {
   CheckCircle,
