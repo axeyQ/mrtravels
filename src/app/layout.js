@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { Providers } from './providers'
 import UserDataSync from '../components/UserDataSync'
 import { Analytics } from "@vercel/analytics/react"
+import Footer from '@/components/shared/Footer'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
           <UserDataSync />
           {children}
           <ToastContainer position="bottom-right" />
+          <Footer/>
         </Providers>
       </body>
     </html>

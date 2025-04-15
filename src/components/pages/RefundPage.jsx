@@ -154,23 +154,9 @@ export default function RefundPage() {
 
           <h2 className=' text-xl font-bold mb-4 mt-6'>7. Refund Process and Timeline</h2>
           <p>
-            Refunds will be processed through the original payment method used for the booking. The time it takes for 
-            the refund to appear in your account depends on your payment provider:
+            Once refund is processed, it will be credited in bank account within 5-7 business working days.
           </p>
-          <ul className='ml-4'>
-            <li>
-              a. <strong>Credit/Debit Cards: </strong> 
-              Refunds typically appear within 5-10 business days.
-            </li>
-            <li>
-              b. <strong>Digital Wallets (e.g., PayTM, PhonePe):</strong> 
-              Refunds typically appear within 3-5 business days.
-            </li>
-            <li>
-              c. <strong>Bank Transfers:</strong> 
-              Refunds typically appear within 5-7 business days.
-            </li>
-          </ul>
+        
           <p>
             If you have not received your refund within the expected timeframe, please contact our customer service team 
             for assistance.
