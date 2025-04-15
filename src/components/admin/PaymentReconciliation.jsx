@@ -9,10 +9,7 @@ import {
   Filter, DollarSign, RefreshCw, ArrowDownUp 
 } from 'lucide-react';
 import { CSVLink } from 'react-csv';
-import { 
-  formatCurrency, 
-  formatDate 
-} from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/formatUtils';
 
 export default function PaymentReconciliation() {
   const { user, isLoaded: isUserLoaded } = useUser();
