@@ -1,5 +1,4 @@
 import Navbar from '@/components/shared/Navbar';
-import Footer from '@/components/shared/Footer';
 import StoreStatusCheck from '@/components/shared/StoreStatusCheck';
 
 export default function DashboardLayout({ children }) {
@@ -11,7 +10,6 @@ export default function DashboardLayout({ children }) {
         {children}
       </StoreStatusCheck>
       </main>
-      <Footer />
     </div>
   );
 }

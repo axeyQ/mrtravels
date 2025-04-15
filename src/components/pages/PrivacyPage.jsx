@@ -24,7 +24,7 @@ Last updated: April 1, 2025
     <div className="prose prose-primary max-w-none">
       <h2 className="text-xl font-bold mb-4">1. Introduction</h2>
       <p>
-        Welcome to ZipBikes. This Privacy Policy describes how we collect, use, 
+        Welcome to ZipBikes By <b>M.R Travels and Rental Services</b>. This Privacy Policy describes how we collect, use, 
         protect, and share your personal information when you use our bike rental 
         platform, including our website and mobile application.
       </p>

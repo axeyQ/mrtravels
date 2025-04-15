@@ -229,7 +229,7 @@ export default function Footer() {
         
         <div className="mt-8 pt-8 border-t flex flex-col md:flex-row justify-between items-center">
           <p className="text-center text-xs leading-5 text-gray-500">
-            &copy; {new Date().getFullYear()} ZipBikes. All rights reserved.
+            &copy; {new Date().getFullYear()} ZipBikes. by M.R Travels And Rental Services All rights reserved.
           </p>
           
           <div className="flex justify-center space-x-6 mt-4 md:mt-0">

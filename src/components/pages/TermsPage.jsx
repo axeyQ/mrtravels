@@ -24,7 +24,7 @@ export default function TermsPage() {
         <div className="prose prose-primary max-w-none">
           <h2 className=' text-xl font-bold mb-4'>1. Introduction</h2>
           <p>
-            Welcome to ZipBikes. These Terms and Conditions govern your use of our website and services, 
+            Welcome to ZipBikes By <b>M.R Travels and Rental Services</b>. These Terms and Conditions govern your use of our website and services, 
             including our mobile application, and the rental of vehicles through our platform. By accessing 
             our platform or using our services, you agree to be bound by these Terms and Conditions.
           </p>
